@@ -141,7 +141,7 @@ document.head.appendChild(style);
 const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))\/-\/pipelines\/(\d+)(\/.*)?/i;
 var match = window.location.href.match(projectPattern);
 
-if (match[2] && match[6]) {
+if (match && match.length >= 7) {
     // Wait until body has class 'page-initialised'
     const observer = new MutationObserver((mutationsList, observer) => {
         for (let mutation of mutationsList) {
