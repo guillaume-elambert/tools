@@ -14,6 +14,10 @@ const GITLAB_SCRIPTS_CONFIG = {
     ], // replace with your email
     DEFAULT_PIPELINE_VARIABLES: {
         "VARIABLE1": "value1",
+        "VARIABLE2": {
+            value: "value2",
+            description: "Description for VARIABLE2"
+        }
     },
 };
 

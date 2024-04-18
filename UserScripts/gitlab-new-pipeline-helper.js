@@ -26,7 +26,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }, 100);
 }).then(async () => {
 
-    var defaultVariables = window.loadConfigurations('DEFAULT_PIPELINE_VARIABLES');
+    const defaultVariables = window.loadConfigurations('DEFAULT_PIPELINE_VARIABLES');
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
@@ -40,10 +40,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             });
 
         if (!fieldset) return;
-        var iterated = 0;
+        let iterated = 0;
 
         for (const [key, value] of Object.entries(variables)) {
-            var container = await window.waitForElement(fieldset, `div:nth-of-type(${iterated + 1}) > div`)
+            const container = await window.waitForElement(fieldset, `div:nth-of-type(${iterated + 1}) > div`)
                 .catch(error => {
                     console.error(`Error while waiting for container of ${key}:`, error);
                     return null;
@@ -51,17 +51,33 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             if (!container) continue;
 
+            
+            
+            let valueToSet = value;
+            
+            if (typeof valueToSet === 'object') {
+                valueToSet = value.value;
+
+                if(value.description) {
+                    container.title = value.description;
+                }
+            }
+            
+            if(!key || !valueToSet) {
+                console.error(`Variable ${key} is empty. Skipping...`);
+                continue;
+            }
+            
+            let inputKey = container.querySelector("input");
+            let inputValue = container.querySelector("textarea");
+
             ++iterated;
-            var inputKey = container.querySelector("input");
-            var inputValue = container.querySelector("textarea");
-
-
-            // Simulate user typing
+            
             inputKey.value = key;
-            inputValue.value = value;
+            inputValue.value = valueToSet;
 
             // Wait for fieldset to have new child
-            var prom = window.waitForElement(fieldset, `div:nth-of-type(${iterated + 1})`, 1000)
+            const prom = window.waitForElement(fieldset, `div:nth-of-type(${iterated + 1})`, 1000)
                 .catch(error => {
                     console.error(`Error while waiting for next container after ${key}:`, error);
                 });
@@ -74,6 +90,35 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             }
         }
     }
+
+    window.updateVariableTitle = (node) => {
+        const container = node.closest('div');
+        if (!container) return;
+
+        // Check if the key is within the default variables and has a description
+        if (defaultVariables[node.value]?.description) {
+            // Set the title of the container
+            container.title = defaultVariables[node.value].description;
+            return;
+        }
+
+        container.title = '';
+    }
+
+    // Detect changes on all 'data-testid="pipeline-form-ci-variable-key-field"' values
+    const variablesObserver = new MutationObserver((mutationsList, observer) => {
+        for (let mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                for (let node of mutation.addedNodes) {                    
+                    if (node.querySelector && (node = node.querySelector('[data-testid="pipeline-form-ci-variable-key-field"]'))) {
+                        ['input', 'paste', 'change', 'keydown']
+                            .forEach(event => node.addEventListener(event, () => window.updateVariableTitle(node)));
+                    }
+                }
+            }
+        }
+    });
+    variablesObserver.observe(document.body, { childList: true, subtree: true });
 
     window.fillVariablesUsage = () => {
         var usage = `padding-bottom: 0.5em;
@@ -88,7 +133,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             `%cUsage:
     %cfillVariables({
         "VARIABLE1": "value1",
-        "VARIABLE2": "value2"
+        "VARIABLE2": {
+            value: "value2",
+            description: "Description for VARIABLE2"
+        }
     });`, usage, code
         );
     }
@@ -255,10 +303,13 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             // Await form to emit a new Mutation event
             await new Promise(resolve => {
                 const observer = new MutationObserver(() => {
+                    if(!form.querySelector(fieldsetSelector)) return;
                     resolve();
                     observer.disconnect();
                 });
-                observer.observe(form.querySelector(fieldsetSelector), { childList: true });
+
+                // Wait for the fieldset to be created
+                observer.observe(form, { childList: true, subtree: true });
             });
 
             window.fillVariables();
