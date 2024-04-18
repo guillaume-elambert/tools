@@ -96,7 +96,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     // Select the last branch you made a commit on
     window.getLastBranchForEmail = async (authorEmail, projectPath, gitlabApiUrl = 'https://gitlab.com/api/v4') => {
-        // Get the last commit you made
+        // Get the 10 last commits you made
         const commits = await fetch(`${gitlabApiUrl}/projects/${encodeURIComponent(projectPath)}/repository/commits?all=true&author=${encodeURIComponent(authorEmail)}&per_page=10`,
             {
                 headers: {
@@ -110,6 +110,11 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         if (!commits || commits.length == 0 || !commits[Symbol.iterator]) {
             throw new Error('No commit found');
         }
+
+        // Order the commits by date (the earliest first)
+        commits.sort((a, b) => {
+            return new Date(b.committed_date) - new Date(a.committed_date);
+        });
 
         for (const commit of commits) {
             // Get the branches associated with that commit
