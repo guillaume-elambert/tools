@@ -130,14 +130,14 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         line-height: 1.6em;`
 
         console.log(
-            `%cUsage:
-    %cfillVariables({
-        "VARIABLE1": "value1",
-        "VARIABLE2": {
-            value: "value2",
-            description: "Description for VARIABLE2"
-        }
-    });`, usage, code
+            `%cUsage:%c
+fillVariables({
+    "VARIABLE1": "value1",
+    "VARIABLE2": {
+        value: "value2",
+        description: "Description for VARIABLE2"
+    }
+});`, usage, code
         );
     }
 
