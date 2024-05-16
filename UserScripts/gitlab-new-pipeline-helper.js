@@ -25,14 +25,34 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         }
     }, 100);
 }).then(async () => {
+    
+    const pipelineVariables = window.loadConfigurations('PIPELINE_VARIABLES');
 
-    const defaultVariables = window.loadConfigurations('DEFAULT_PIPELINE_VARIABLES');
+    const defaultVariables = pipelineVariables.DEFAULT;
+    const variablesDefinition = pipelineVariables.DICTIONARY
+    const projectVariables = pipelineVariables.PER_PROJECT;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
 
+    const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
+    const projectUriMatch = window.location.href.match(projectPattern);
+
+    let variablesToUse = defaultVariables;
+    if(projectUriMatch && projectUriMatch.length >= 2 && projectVariables[projectUriMatch[1]]) {
+        console.log(variablesToUse, defaultVariables)
+        variablesToUse = projectVariables[projectUriMatch[1]];
+    }
+
+    // UI constants
+    const variablesFormSelector = "#content-body > form";
+    const variablesForm = document.querySelector(variablesFormSelector);
+    const topFieldSet = variablesForm.querySelector("fieldset:nth-of-type(1)");
+    const fieldsetSelector = "fieldset:nth-of-type(2) > div";
+
+
     window.fillVariables = async (variables = defaultVariables) => {
-        var form = document.querySelector("#content-body > form");
+        var form = document.querySelector(variablesFormSelector);
         var fieldset = await window.waitForElement(form, fieldsetSelector)
             .catch(error => {
                 console.error('Error while waiting for fieldset:', error);
@@ -94,14 +114,26 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     window.updateVariableTitle = (node) => {
         const container = node.closest('div');
         if (!container) return;
-
+        
+        // Check if the key is within the project variables and has a description
+        if (projectVariables[node.value]?.description) {
+            container.title = projectVariables[node.value].description;
+            return;
+        }
+        
         // Check if the key is within the default variables and has a description
         if (defaultVariables[node.value]?.description) {
             // Set the title of the container
             container.title = defaultVariables[node.value].description;
             return;
         }
-
+        
+        // Check if the key is within the global variables
+        if(variablesDefinition[node.value]) {
+            container.title = variablesDefinition[node.value];
+            return;
+        }
+        
         container.title = '';
     }
 
@@ -264,55 +296,57 @@ fillVariables({
     }
 
 
-    let form = document.querySelector("#content-body > form");
-    let topFieldSet = form.querySelector("fieldset:nth-of-type(1)");
-    const fieldsetSelector = "fieldset:nth-of-type(2) > div";
 
-    // Add a button to fill the variables
-    let btn = document.createElement("a");
-    let label = document.createElement("label");
-    label.textContent = "▼ Fill default variables ▼";
-    label.className = "gl-button-text";
-    btn.className = "btn js-no-auto-disable gl-mr-3 btn-confirm btn-md gl-button";
-    btn.style = "margin-top: 1em;";
+    window.addFillVariablesButton = (text, callback) => {
 
-    window.fillVariablesUsage();
-    window.fillVariables();
+        // Add a button to fill the variables
+        let btn = document.createElement("a");
+        let span = document.createElement("span");
+        span.textContent = "▼ Fill default variables ▼";
+        span.className = "gl-button-text";
+        btn.className = "btn js-no-auto-disable gl-mr-3 btn-confirm btn-md gl-button";
+        btn.style = "margin-top: 1em;";
 
-    btn.onclick = () => {
-        fillVariables(defaultVariables);
+        btn.onclick = callback;
+    
+        btn.appendChild(span);
+        topFieldSet.appendChild(btn);
     }
 
-    btn.appendChild(label);
-    topFieldSet.appendChild(btn);
+    
+    window.fillVariablesUsage();
+    window.fillVariables(variablesToUse);    
+
+    window.addFillVariablesButton("Fill default variables", () => {
+        window.fillVariables(variablesToUse);
+    });
 
     // Add default variables to the form each time the fieldset gets modified
     const observer = new MutationObserver(() => {
-        if (form.querySelector(fieldsetSelector)) {
-            window.fillVariables(defaultVariables);
+        if (variablesForm.querySelector(fieldsetSelector)) {
+            window.fillVariables(variablesToUse);
         }
     });
-    observer.observe(form, { childList: true });
+    observer.observe(variablesForm, { childList: true });
 
 
-    const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
-    let match = window.location.href.match(projectPattern);
 
-    if (match && match.length >= 2) {
-        await window.selectLastBranch(authorEmails, match[2], async () => {
+    if (projectUriMatch && projectUriMatch.length >= 2) {
+        await window.selectLastBranch(authorEmails, projectUriMatch[2], async () => {
             // Await form to emit a new Mutation event
             await new Promise(resolve => {
                 const observer = new MutationObserver(() => {
-                    if(!form.querySelector(fieldsetSelector)) return;
+                    if(!variablesForm.querySelector(fieldsetSelector)) return;
                     resolve();
                     observer.disconnect();
                 });
 
                 // Wait for the fieldset to be created
-                observer.observe(form, { childList: true, subtree: true });
+                observer.observe(variablesForm, { childList: true, subtree: true });
             });
 
-            window.fillVariables();
+            console.log(projectUriMatch[1], projectVariables[projectUriMatch[1]])
+            window.fillVariables(variablesToUse);
         }).catch(error => {
             console.error(`Error while selecting last branch:`, error);
         });
