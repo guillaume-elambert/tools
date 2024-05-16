@@ -30,7 +30,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     const defaultVariables = pipelineVariables.DEFAULT;
     const variablesDefinition = pipelineVariables.DICTIONARY
-    const projectVariables = pipelineVariables.PER_PROJECT;
+    const perProjectVariables = pipelineVariables.PER_PROJECT;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
@@ -38,20 +38,34 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
     const projectUriMatch = window.location.href.match(projectPattern);
 
-    let variablesToUse = defaultVariables;
-    if(projectUriMatch && projectUriMatch.length >= 2 && projectVariables[projectUriMatch[1]]) {
-        console.log(variablesToUse, defaultVariables)
-        variablesToUse = projectVariables[projectUriMatch[1]];
-    }
+    const projectVariables = perProjectVariables[projectUriMatch[1]] || undefined;
+    let variablesToUse = projectVariables || defaultVariables;
+
+    const localStorageKey = `GITLAB_SCRIPTS_VARIABLES`;
 
     // UI constants
     const variablesFormSelector = "#content-body > form";
     const variablesForm = document.querySelector(variablesFormSelector);
     const topFieldSet = variablesForm.querySelector("fieldset:nth-of-type(1)");
     const fieldsetSelector = "fieldset:nth-of-type(2) > div";
+    const variableRowSelector = "div[data-testid='ci-variable-row-container']"
+    const variableRemoveButtonSelector = "button[data-testid='remove-ci-variable-row']"
+    // <button data-testid="run-pipeline-button" type="submit">
+    const submitButtonSelector = "button[data-testid='run-pipeline-button'][type='submit']";
 
+    
+    window.removeVariables = () => {
+        let form = document.querySelector(variablesFormSelector);
+        let rows = form.querySelectorAll(`${variableRowSelector}:has(${variableRemoveButtonSelector})`);
+        // Invert the array to remove the last added variables first
+        rows = Array.from(rows).reverse();
+        rows.forEach(row => {
+            row.querySelector(variableRemoveButtonSelector).click();
+        });
+    }
 
     window.fillVariables = async (variables = defaultVariables) => {
+        window.removeVariables();
         var form = document.querySelector(variablesFormSelector);
         var fieldset = await window.waitForElement(form, fieldsetSelector)
             .catch(error => {
@@ -116,8 +130,8 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         if (!container) return;
         
         // Check if the key is within the project variables and has a description
-        if (projectVariables[node.value]?.description) {
-            container.title = projectVariables[node.value].description;
+        if (perProjectVariables[node.value]?.description) {
+            container.title = perProjectVariables[node.value].description;
             return;
         }
         
@@ -296,30 +310,119 @@ fillVariables({
     }
 
 
+    window.loadLatestUsedConfiguration = async (projectPath) => {
+        // Load form configuration from the local storage
+        const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKey));
+        if (!formConfiguration) return;
+        if(!formConfiguration[projectPath]) return;
+        return formConfiguration[projectPath];
+    }
 
-    window.addFillVariablesButton = (text, callback) => {
+
+    window.addFillVariablesButton = (innerHtml, callback, buttonLevel = 1, title = "") => {
+        let buttonClass = "";
+        switch (buttonLevel) {
+            case -1:
+                buttonClass = "btn-danger-secondary";
+                break;
+            case 1:
+                buttonClass = "btn-confirm";
+                break;
+            case 2:
+                buttonClass = "btn-confirm-secondary";
+                break;
+            case 3:
+                buttonClass = "btn-dashed";
+                break;
+            default:
+                buttonClass = "btn-default";
+                break;
+        }
 
         // Add a button to fill the variables
         let btn = document.createElement("a");
         let span = document.createElement("span");
-        span.textContent = "▼ Fill default variables ▼";
+        span.innerHTML = innerHtml;
         span.className = "gl-button-text";
-        btn.className = "btn js-no-auto-disable gl-mr-3 btn-confirm btn-md gl-button";
-        btn.style = "margin-top: 1em;";
-
+        btn.className = "btn js-no-auto-disable gl-mr-3 btn-md gl-button " + buttonClass;
+        btn.style = "margin-top: 1em;"
+        if (title) btn.title = title;
+        
         btn.onclick = callback;
-    
         btn.appendChild(span);
         topFieldSet.appendChild(btn);
     }
+    
+    let buttonsToAdd = [];
+    let localStorageConfiguration = await window.loadLatestUsedConfiguration(projectUriMatch[1]) || undefined;
+    let currentBtnCount = 0;
+    
+
+    if(localStorageConfiguration) {
+        variablesToUse = localStorageConfiguration;
+
+        buttonsToAdd.push({
+            innerHtml: "▼ Fill last used variables ▼",
+            callback: () => {
+                window.fillVariables(localStorageConfiguration);
+            },
+            level: ++currentBtnCount
+        });
+    }
+
+    if (projectVariables) {
+        buttonsToAdd.push({
+            innerHtml: "▼ Fill project variables ▼",
+            callback: () => {
+                window.fillVariables(projectVariables);
+            },
+            level: ++currentBtnCount
+        });
+    }
+
+    buttonsToAdd.push({
+        innerHtml: "▼ Fill default variables ▼",
+        callback: () => {
+            window.fillVariables(defaultVariables);
+        },
+        level: ++currentBtnCount
+    });
+
+    window.getIcon = (slug) => {
+        // The slug should be get from https://gitlab-org.gitlab.io/gitlab-svgs/
+        let randomIcon = document.querySelector(`.gl-icon[data-testid="${slug}-icon"]`);
+
+        if (randomIcon) return randomIcon;
+        randomIcon = document.querySelector(`.gl-icon[data-testid$=-icon]`);
+        randomIcon = randomIcon.cloneNode(true);
+        randomIcon.setAttribute('data-testid', 'clear-icon');
+        // get the <use> tag url
+        let useTag = randomIcon.querySelector('use');
+        let iconUrl = useTag.getAttribute('href');
+        // Replace the url with the correct one
+        iconUrl = iconUrl.replace(/#.*$/, `#${slug}`);
+        useTag.setAttribute('href', iconUrl);
+        return randomIcon;
+    }
+    
+    let clearIcon = window.getIcon('clear');
+    clearIcon.className.baseVal = "gl-mr-0! gl-display-none gl-md-display-block gl-icon s16"
+    
+    buttonsToAdd.push({
+        innerHtml: clearIcon.outerHTML,
+        callback: window.removeVariables,
+        level: -1,
+        title: "Clear the form"
+    });
 
     
     window.fillVariablesUsage();
-    window.fillVariables(variablesToUse);    
+    window.fillVariables(variablesToUse);
 
-    window.addFillVariablesButton("Fill default variables", () => {
-        window.fillVariables(variablesToUse);
+    buttonsToAdd.forEach(button => {
+        window.addFillVariablesButton(button.innerHtml, button.callback, button.level);
     });
+
 
     // Add default variables to the form each time the fieldset gets modified
     const observer = new MutationObserver(() => {
@@ -345,12 +448,12 @@ fillVariables({
                 observer.observe(variablesForm, { childList: true, subtree: true });
             });
 
-            console.log(projectUriMatch[1], projectVariables[projectUriMatch[1]])
+            console.log(projectUriMatch[1], perProjectVariables[projectUriMatch[1]])
             window.fillVariables(variablesToUse);
         }).catch(error => {
             console.error(`Error while selecting last branch:`, error);
         });
     }
-}).catch(() => {
+})/*.catch(() => {
     return;
-});
+});*/
