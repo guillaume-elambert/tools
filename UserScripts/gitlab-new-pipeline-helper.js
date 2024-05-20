@@ -185,7 +185,7 @@ fillVariables({
         if (!variables || Object.keys(variables).length === 0) return;
 
         let formConfiguration = JSON.parse(window.localStorage.getItem(localStorageKeyLastestVariables)) || {};
-        let currentProjectConfiguration = formConfiguration[projectPath] || {};
+        let currentProjectConfiguration = {};
         for (const [key, value] of Object.entries(variables)) {
             if (!value) continue;
             if (typeof value === 'object') {
