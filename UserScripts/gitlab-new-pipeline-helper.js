@@ -30,7 +30,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     const defaultVariables = pipelineVariables.DEFAULT;
     const variablesDefinition = pipelineVariables.DICTIONARY
-    const perProjectVariables = pipelineVariables.PER_PROJECT;
+    let perProjectVariables = pipelineVariables.PER_PROJECT;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
@@ -38,10 +38,15 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
     const projectUriMatch = window.location.href.match(projectPattern);
 
-    const projectVariables = perProjectVariables[projectUriMatch[1]] || undefined;
-    let variablesToUse = projectVariables || defaultVariables;
+    let projectVariables = perProjectVariables[projectUriMatch[1]] || undefined;
+    let variablesToUse = defaultVariables;
+    if (projectVariables && Object.keys(projectVariables).length > 0) {
+        variablesToUse = projectVariables;
+    } else {
+        projectVariables = undefined;
+    }
 
-    const localStorageKey = `GITLAB_SCRIPTS_VARIABLES`;
+    const localStorageKeyLastestVariables = `GITLAB_SCRIPTS_LASTEST_VARIABLES`;
 
     // UI constants
     const variablesFormSelector = "#content-body > form";
@@ -49,6 +54,8 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const topFieldSet = variablesForm.querySelector("fieldset:nth-of-type(1)");
     const fieldsetSelector = "fieldset:nth-of-type(2) > div";
     const variableRowSelector = "div[data-testid='ci-variable-row-container']"
+    const variableRowKeySelector = "input[data-testid='pipeline-form-ci-variable-key-field']";
+    const variableRowValueSelector = "textarea[data-testid='pipeline-form-ci-variable-value-field']";
     const variableRemoveButtonSelector = "button[data-testid='remove-ci-variable-row']"
     // <button data-testid="run-pipeline-button" type="submit">
     const submitButtonSelector = "button[data-testid='run-pipeline-button'][type='submit']";
@@ -91,10 +98,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             
             if (typeof valueToSet === 'object') {
                 valueToSet = value.value;
-
-                if(value.description) {
-                    container.title = value.description;
-                }
+                window.updateVariableTitle(container.querySelector(variableRowKeySelector));
             }
             
             if(!key || !valueToSet) {
@@ -125,47 +129,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         }
     }
 
-    window.updateVariableTitle = (node) => {
-        const container = node.closest('div');
-        if (!container) return;
-        
-        // Check if the key is within the project variables and has a description
-        if (perProjectVariables[node.value]?.description) {
-            container.title = perProjectVariables[node.value].description;
-            return;
-        }
-        
-        // Check if the key is within the default variables and has a description
-        if (defaultVariables[node.value]?.description) {
-            // Set the title of the container
-            container.title = defaultVariables[node.value].description;
-            return;
-        }
-        
-        // Check if the key is within the global variables
-        if(variablesDefinition[node.value]) {
-            container.title = variablesDefinition[node.value];
-            return;
-        }
-        
-        container.title = '';
-    }
-
-    // Detect changes on all 'data-testid="pipeline-form-ci-variable-key-field"' values
-    const variablesObserver = new MutationObserver((mutationsList, observer) => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                for (let node of mutation.addedNodes) {                    
-                    if (node.querySelector && (node = node.querySelector('[data-testid="pipeline-form-ci-variable-key-field"]'))) {
-                        ['input', 'paste', 'change', 'keydown']
-                            .forEach(event => node.addEventListener(event, () => window.updateVariableTitle(node)));
-                    }
-                }
-            }
-        }
-    });
-    variablesObserver.observe(document.body, { childList: true, subtree: true });
-
     window.fillVariablesUsage = () => {
         var usage = `padding-bottom: 0.5em;
         font-size: 1.2em;
@@ -186,6 +149,82 @@ fillVariables({
 });`, usage, code
         );
     }
+
+    window.updateVariableTitle = (node) => {
+        const container = node.closest('div');
+        if (!container) return;
+        
+        // Check if the key is within the project variables and has a description
+        if (projectVariables && projectVariables[node.value]?.description) {
+            container.title = projectVariables[node.value].description;
+            // Set the custom attribute 'variable-description' to the node
+            node.setAttribute('variable-description', projectVariables[node.value].description);
+            return;
+        }
+        
+        // Check if the key is within the default variables and has a description
+        if (defaultVariables[node.value]?.description) {
+            // Set the title of the container
+            container.title = defaultVariables[node.value].description;
+            node.setAttribute('variable-description', defaultVariables[node.value].description);
+            return;
+        }
+        
+        // Check if the key is within the global variables
+        if(variablesDefinition[node.value]) {
+            container.title = variablesDefinition[node.value];
+            node.setAttribute('variable-description', variablesDefinition[node.value]);
+            return;
+        }
+        
+        container.title = '';
+    }
+
+    window.updateLatestVariables = (projectPath, variables) => {
+        // If there is no variables, do nothing
+        if (!variables || Object.keys(variables).length === 0) return;
+
+        let formConfiguration = JSON.parse(window.localStorage.getItem(localStorageKeyLastestVariables)) || {};
+        let currentProjectConfiguration = formConfiguration[projectPath] || {};
+        for (const [key, value] of Object.entries(variables)) {
+            if (!value) continue;
+            if (typeof value === 'object') {
+                value = value.value;
+            }
+            currentProjectConfiguration[key] = value;
+        }
+        formConfiguration[projectPath] = currentProjectConfiguration;
+        window.localStorage.setItem(localStorageKeyLastestVariables, JSON.stringify(formConfiguration));
+        projectVariables = currentProjectConfiguration;
+        perProjectVariables[projectPath] = currentProjectConfiguration;
+    }
+
+    window.getFilledVariables = () => {
+        let form = document.querySelector(variablesFormSelector);
+        let rows = form.querySelectorAll(`${variableRowSelector}:has(${variableRemoveButtonSelector})`);
+        let variables = {};
+        rows.forEach(row => {
+            let key = row.querySelector(variableRowKeySelector).value;
+            let value = row.querySelector(variableRowValueSelector).value;
+            variables[key] = value;
+        });
+        return variables;
+    }
+
+    // Detect changes on all 'data-testid="pipeline-form-ci-variable-key-field"' values
+    const variablesObserver = new MutationObserver((mutationsList, observer) => {
+        for (let mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                for (let node of mutation.addedNodes) {                    
+                    if (node.querySelector && (node = node.querySelector(variableRowKeySelector))) {
+                        ['input', 'paste', 'change', 'keydown']
+                            .forEach(event => node.addEventListener(event, () => window.updateVariableTitle(node)));
+                    }
+                }
+            }
+        }
+    });
+    variablesObserver.observe(document.body, { childList: true, subtree: true });
 
 
     // Select the last branch you made a commit on
@@ -312,7 +351,7 @@ fillVariables({
 
     window.loadLatestUsedConfiguration = async (projectPath) => {
         // Load form configuration from the local storage
-        const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKey));
+        const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKeyLastestVariables));
         if (!formConfiguration) return;
         if(!formConfiguration[projectPath]) return;
         return formConfiguration[projectPath];
@@ -448,12 +487,20 @@ fillVariables({
                 observer.observe(variablesForm, { childList: true, subtree: true });
             });
 
-            console.log(projectUriMatch[1], perProjectVariables[projectUriMatch[1]])
             window.fillVariables(variablesToUse);
         }).catch(error => {
             console.error(`Error while selecting last branch:`, error);
         });
     }
-})/*.catch(() => {
+
+    // Before submitting the form, save the configuration to the local storage
+    variablesForm.addEventListener('submit', e => {
+        if(!projectUriMatch || projectUriMatch.length < 2) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const variables = window.getFilledVariables();
+        window.updateLatestVariables(projectUriMatch[1], variables);
+    });
+}).catch(() => {
     return;
-});*/
+});
