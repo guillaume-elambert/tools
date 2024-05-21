@@ -104,28 +104,28 @@ const GITLAB_SCRIPTS_CONFIG = {
 
 ### Configuration - `Custom Gitlab shortcuts`
 
-> _Configuration is to be defined **within the script** itself ([Custom Gitlab shortcuts](./gitlab-shortcuts.js))_
+> _Configuration is to be defined **within the script** itself ([`Custom Gitlab shortcuts`](./gitlab-shortcuts.js))_
 
 The keys correspond to the shortcut to be used. \
 The value is a function that will be called when the shortcut is pressed.
 
 ```javascript
 const shortcuts = {
-    // Go to run pipeline page
-    'r+p': (projectMatch) => {
-        // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
-        // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/pipelines/new`;
-    },
-    // Go to run project variables page
-    'p+v': (projectMatch) => {
-        // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
-        // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
-    }
-}
+  // Go to run pipeline page
+  "r+p": (projectMatch) => {
+    // Check that the URL is pointing to a Gitlab project
+    if (!projectMatch) return;
+    // Go to the pipeline page
+    window.location.href = `${projectMatch[1]}/-/pipelines/new`;
+  },
+  // Go to run project variables page
+  "p+v": (projectMatch) => {
+    // Check that the URL is pointing to a Gitlab project
+    if (!projectMatch) return;
+    // Go to the pipeline page
+    window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
+  },
+};
 ```
 
 [gitlab-token]: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html
