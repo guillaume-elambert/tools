@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Run pipeline helper
-// @version      2024-04-12
+// @version      2024-05-20
 // @description  Simplify the creation of a new Gitlab pipeline
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/new
