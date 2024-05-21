@@ -50,9 +50,13 @@ The `PER_PROJECT` object contains the variables that should be added to the pipe
 
 The configuration in the `PER_PROJECT` object has the higher precedence. \
 Then the `DEFAULT` object and finally the `DICTIONARY` object.
+
+The script also uses local storage to store the values used the last time you launched a pipeline for the project you're currently working on. \
+If you've already run a pipeline with this script in the past, the last variables used are stored in local storage and have the highest precedence.
+
 Which can be summarized as: \
 Order of description: `PER_PROJECT` -> `DEFAULT` -> `DICTIONARY` \
-Order of value: `PER_PROJECT` -> `DEFAULT`
+Order of value: `Local storage` -> `PER_PROJECT` -> `DEFAULT`
 
 ```javascript
 const GITLAB_SCRIPTS_CONFIG = {
