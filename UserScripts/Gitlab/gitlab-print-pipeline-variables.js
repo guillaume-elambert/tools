@@ -58,7 +58,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         card.className = 'gl-card gl-rounded-lg pipeline-variables-card hide-variables';
 
         const cardHeader = document.createElement('div');
-        cardHeader.className = 'stage-column-title gl-font-weight-bold gl-text-truncate gl-line-height-42 gl-pl-4 gl-mb-n2 pipeline-variables-header';
+        cardHeader.className = 'stage-column-title gl-font-weight-bold gl-text-truncate gl-leading-36 gl-pl-4 gl-mb-n2 pipeline-variables-header';
         cardHeader.innerHTML = '<span title="Variables" class="gl-text-truncate gl-pr-3 gl-w-85p">Variables</span>';
         cardHeader.addEventListener('click', () => toggleVariablesCardVisibility(card));
         card.appendChild(cardHeader);
@@ -103,6 +103,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
                 const th2 = document.createElement('th');
                 th2.innerText = 'Value';
+                th2.style.width = '100%';
                 tr.appendChild(th2);
 
                 const tbody = document.createElement('tbody');
