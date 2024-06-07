@@ -445,7 +445,7 @@ fillVariables({
     }
     
     let clearIcon = window.getIcon('clear');
-    clearIcon.className.baseVal = "gl-mr-0! gl-display-none gl-md-display-block gl-icon s16"
+    clearIcon.className.baseVal = "gl-mr-0! gl-md-display-block gl-icon s16"
     
     buttonsToAdd.push({
         innerHtml: clearIcon.outerHTML,
