@@ -1,0 +1,57 @@
+## HELM
+
+# GENERAL
+
+alias h='helm'
+alias hu="helm upgrade"
+alias hve="helm version"
+alias hpl="helm pull"
+alias hps="helm push"
+
+complete -F _complete_alias h
+complete -F _complete_alias hpl
+complete -F _complete_alias hps
+
+# REPO
+
+alias hr="helm repo"
+alias hra="helm repo add"
+alias hrr="helm repo remove"
+alias hrl="helm repo list"
+alias hru="helm repo update"
+
+complete -F _complete_alias hr
+complete -F _complete_alias hra
+complete -F _complete_alias hrr
+complete -F _complete_alias hru
+
+# CHART
+
+alias hs="helm show"
+alias hsa="helm show all"
+alias hsc="helm show chart"
+alias hsv="helm show values"
+
+complete -F _complete_alias hs
+complete -F _complete_alias hsa
+complete -F _complete_alias hsc
+complete -F _complete_alias hsv
+
+# RELEASE
+
+alias hg="helm get"
+alias hl="helm list"
+alias hga="helm get all"
+alias hgm="helm get manifest"
+alias hgv="helm get values"
+alias hrb="helm rollback"
+
+alias hi="helm install"
+alias hif="helm install -f values.yaml"
+alias huni="helm uninstall"
+
+complete -F _complete_alias huni
+
+# DEBUG
+
+alias hd="helm template . --debug | grep -n '^'"

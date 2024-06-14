@@ -1,0 +1,158 @@
+alias k='kubectl'
+complete -F _complete_alias k
+
+alias kx='kubectx'
+alias kns='kubens'
+alias ksw='. ksw'
+
+alias kg="kubectl get"
+complete -F _complete_alias kg
+
+alias kgw="kubectl get -o=wide"
+alias kgy="kubectl get -o=yaml"
+complete -F _complete_alias kgw
+complete -F _complete_alias kgy
+
+alias kgd="kubectl get deployment"
+alias kgdw="kubectl get deployment -o=wide"
+alias kgdy="kubectl get deployment -o=yaml"
+complete -F _complete_alias kgd
+complete -F _complete_alias kgdw
+complete -F _complete_alias kgdy
+
+alias kgds="kubectl get daemonsets"
+alias kgdsw="kubectl get daemonsets -o=wide"
+alias kgdsy="kubectl get daemonsets -o=yaml"
+complete -F _complete_alias kgds
+complete -F _complete_alias kgdsw
+complete -F _complete_alias kgdsy
+
+alias kgi="kubectl get ingress"
+alias kgiw="kubectl get ingress -o=wide"
+alias kgiy="kubectl get ingress -o=yaml"
+complete -F _complete_alias kgi
+complete -F _complete_alias kgiw
+complete -F _complete_alias kgpy
+
+alias kgp="kubectl get pod"
+alias kgpw="kubectl get pod -o=wide"
+alias kgpy="kubectl get pod -o=yaml"
+complete -F _complete_alias kgp
+complete -F _complete_alias kgpw
+complete -F _complete_alias kgpy
+
+alias kgpv="kubectl get pv"
+alias kgpvw="kubectl get pv -o=wide"
+alias kgpvy="kubectl get pv -o=yaml"
+complete -F _complete_alias kgpv                                                              
+complete -F _complete_alias kgpvw
+complete -F _complete_alias kgpvy
+
+alias kgpvc="kubectl get pvc"
+alias kgpvcw="kubectl get pvc -o=wide"
+alias kgpvcy="kubectl get pvc -o=yaml"
+complete -F _complete_alias kgpvc
+complete -F _complete_alias kgpvcw
+complete -F _complete_alias kgpvcy
+
+alias kgr="kubectl get role"
+alias kgrw="kubectl get role -o=wide"
+alias kgry="kubectl get role -o=yaml"
+complete -F _complete_alias kgr
+complete -F _complete_alias kgrw
+complete -F _complete_alias kgry
+
+alias kgrb="kubectl get rolebinding"
+alias kgrbw="kubectl get rolebinding -o=wide"
+alias kgrby="kubectl get rolebinding -o=yaml"
+complete -F _complete_alias kgrb
+complete -F _complete_alias kgrbw
+complete -F _complete_alias kgrby
+
+alias kgs="kubectl get service"
+alias kgsw="kubectl get service -o=wide"
+alias kgsy="kubectl get service -o=yaml"
+
+complete -F _complete_alias kgs
+complete -F _complete_alias kgsw
+complete -F _complete_alias kgsy
+
+alias kgsa="kubectl get serviceaccount"
+alias kgsaw="kubectl get serviceaccount -o=wide"
+alias kgsay="kubectl get serviceaccount -o=yaml"
+complete -F _complete_alias kgsa
+complete -F _complete_alias kgsaw
+complete -F _complete_alias kgsay
+
+alias kgsc="kubectl get secret"
+alias kgscw="kubectl get secret -o=wide"
+alias kgscy="kubectl get secret -o=yaml"
+complete -F _complete_alias kgsc
+complete -F _complete_alias kgscw
+complete -F _complete_alias kgscy
+
+
+alias kd="kubectl describe"
+complete -F _complete_alias kd
+
+alias kdd="kubectl describe deployment"
+alias kdds="kubectl describe daemonset"
+alias kdi="kubectl describe ingress"
+alias kdp="kubectl describe pod"
+alias kdpv="kubectl describe pv"
+alias kdpvc="kubectl describe pvc"
+alias kdr="kubectl describe role"
+alias kdrb="kubectl describe rolebinding"
+alias kds="kubectl describe service"
+alias kdsa="kubectl describe serviceaccount"
+alias kdsc="kubectl describe secret"
+complete -F _complete_alias kdd
+complete -F _complete_alias kdds
+complete -F _complete_alias kdi
+complete -F _complete_alias kdp
+complete -F _complete_alias kdpv
+complete -F _complete_alias kdpvc
+complete -F _complete_alias kdr
+complete -F _complete_alias kdrb
+complete -F _complete_alias kds
+complete -F _complete_alias kdsa
+complete -F _complete_alias kdsc
+
+
+alias kdel="kubectl delete"
+alias kdelf="kubectl delete -f"
+complete -F _complete_alias kdel
+complete -F _complete_alias kdelf   
+
+alias kdeld="kubectl delete deployment"
+alias kdelds="kubectl delete daemonset"
+alias kdeli="kubectl delete ingress"
+alias kdelp="kubectl delete pod"
+alias kdelpv="kubectl delete pv"
+alias kdelpvc="kubectl delete pvc"
+alias kdelr="kubectl delete role"
+alias kdelrb="kubectl delete rolebinding"
+alias kdels="kubectl delete service"
+alias kdelsa="kubectl delete serviceaccount"
+alias kdelsc="kubectl delete secret"
+complete -F _complete_alias kdeld
+complete -F _complete_alias kdelds
+complete -F _complete_alias kdeli
+complete -F _complete_alias kdelp
+complete -F _complete_alias kdelpv
+complete -F _complete_alias kdelpvc
+complete -F _complete_alias kdelr
+complete -F _complete_alias kdelrb
+complete -F _complete_alias kdels
+complete -F _complete_alias kdelsa
+complete -F _complete_alias kdelsc
+
+alias kl="kubectl logs"
+alias kcx="kubectl exec -it"
+alias kpf="kubectl port-forward"
+alias ka="kubectl apply -f"
+complete -F _complete_alias kl
+complete -F _complete_alias kcx
+complete -F _complete_alias kdeli
+complete -F _complete_alias kpf
+complete -F _complete_alias ka

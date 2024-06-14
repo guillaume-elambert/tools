@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ $# -gt 1 ]; then
+  POD_PATH="$1/$2"
+else
+  POD_PATH=$1
+fi
+
+kubectl exec -it $POD_PATH -- sh

@@ -1,0 +1,83 @@
+## DOCKER
+
+# GENERAL
+
+alias d='docker'
+complete -F _complete_alias d
+
+alias dve="docker -v"
+alias dsp="docker system prune"
+
+# Images
+
+alias di="docker image"
+complete -F _complete_alias di
+alias dil='docker image ls --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | sort'
+alias dila='docker image ls | sort'
+alias dip="docker image prune -f"
+alias dirm='docker rmi'
+complete -F _complete_alias dirm
+
+# Containers
+
+alias dc="docker container"
+complete -F _complete_alias dc
+alias dcl='docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'
+alias dcla='docker ps'
+alias dci="docker inspect"
+complete -F _complete_alias dci
+alias dcrm='docker rm -f'
+complete -F _complete_alias dcrm
+alias dcs="docker start"
+complete -F _complete_alias dcs
+alias dcd="docker down"
+complete -F _complete_alias dcd
+alias dcr="docker restart"
+complete -F _complete_alias dcr
+alias dcp="docker container prune -f"
+alias dcin='docker exec -it'
+complete -F _complete_alias dcin
+
+# Networks 
+
+alias dn="docker network"
+complete -F _complete_alias dn
+alias dnl="docker network ls"
+alias dnc="docker network create"
+alias dni="docker network inspect"
+complete -F _complete_alias dni
+alias dnrm="docker network rm"
+complete -F _complete_alias dnrm
+alias dnp="docker network prune -f"
+
+# Volumes
+
+alias dv="docker volume"
+complete -F _complete_alias dv
+alias dvl="docker volume ls"
+alias dvc="docker volume create"
+alias dvi="docker volume inspect"
+complete -F _complete_alias dvi
+alias dvrm="docker volume rm"
+complete -F _complete_alias dvrm
+alias dvp="docker volume prune -f"
+
+# Logs
+
+alias dl='docker logs'
+complete -F _complete_alias dl
+alias dlf='docker logs -f'
+complete -F _complete_alias dlf
+
+## DOCKER COMPOSE
+
+alias dcp="docker-compose"
+alias dcpv="docker-compose -v"
+alias dcpu="docker-compose up -d"
+alias dcpub="docker-compose up -d --build"
+alias dcpb="docker-compose build --no-cache"
+alias dcpd="docker-compose down"
+alias dcps="docker-compose stop"
+alias dcpr="docker-compose restart"
+alias dcpe="docker-compose exec -it"
+alias dcpc="docker-compose config"

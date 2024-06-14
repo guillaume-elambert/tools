@@ -1,0 +1,28 @@
+#!/bin/bash
+KUBE_CONFIG_PATH=~/.kube
+
+function escapeForSed() {
+    _escaped=$(printf '%s\n' $1 | sed -e 's/[]\/$*.^[]/\\&/g')
+    echo $_escaped
+}
+
+if [ $# -eq 0 ]; then
+  KUBE_CONFIG_PATH="$KUBE_CONFIG_PATH/config"
+else
+  KUBE_CONFIG_PATH="$KUBE_CONFIG_PATH/$1"
+
+  if [ ! -z $2 ]; then
+    KUBE_CONFIG_PATH="$KUBE_CONFIG_PATH/$2"
+  else
+    KUBE_CONFIG_PATH="$KUBE_CONFIG_PATH/config"
+  fi
+
+fi
+
+if [ ! -f "$KUBE_CONFIG_PATH" ]; then
+  echo "Le fichier de conf n'existe pas $KUBE_CONFIG_PATH"
+else
+  export KUBECONFIG=$KUBE_CONFIG_PATH
+  sed -i "s/KUBECONFIG=.*/KUBECONFIG=$(escapeForSed ${KUBE_CONFIG_PATH})/g" ~/.bashrc
+  echo "Le kubeconfig a été set avec le chemin suivant: $KUBE_CONFIG_PATH"
+fi

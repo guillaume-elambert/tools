@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 app=${1:-""}
 namespace=${2:-""}
