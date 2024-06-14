@@ -1,5 +1,20 @@
 #!/bin/bash
 
+set -u
+
+abort() {
+  printf "%s\n" "$@" >&2
+  exit 1
+}
+
+# Fail fast with a concise message when not using bash
+# Single brackets are needed here for POSIX compatibility
+# shellcheck disable=SC2292
+if [ -z "${BASH_VERSION:-}" ]
+then
+  abort "Bash is required to interpret this script."
+fi
+
 # First check OS.
 OS="$(uname)"
 if [[ "${OS}" == "Linux" ]]; then
@@ -16,6 +31,10 @@ if [[ "${EUID}" -eq 0 ]]; then
 fi
 
 installBrew() {
+    if [[ ! -x "$(command -v curl)" ]]; then
+        abort "curl is required to install Homebrew."
+    fi
+
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     if [[ -n "${HOMEBREW_ON_MACOS-}" ]]; then
@@ -41,15 +60,19 @@ installBrew() {
 
     echo "eval \$(${BREW_EXEC} shellenv)" >>~/.bashrc
     source ~/.bashrc
-
+    
     if [[ -n "${HOMEBREW_ON_LINUX-}" ]]; then
         if [[ -x "$(command -v apt-get)" ]]; then
+            sudo apt-get update
             sudo apt-get install build-essential -y || true
         elif [[ -x "$(command -v yum)" ]]; then
+            sudo yum check-update
             sudo yum groupinstall 'Development Tools' -y || true
         elif [[ -x "$(command -v pacman)" ]]; then
+            sudo pacman -Sy
             sudo pacman -S base-devel --noconfirm || true
         elif [[ -x "$(command -v apk)" ]]; then
+            sudo apk update
             sudo apk add build-base --no-cache || true
         fi
 
@@ -65,9 +88,9 @@ backupBashrc() {
 SCRIPT_DIR=$(dirname $(realpath $0))
 
 # Check if brew is installed
-if [[ -z "$(command -v brew)" ]]; then
+if [[ ! -x "$(command -v brew)" ]]; then
     echo "brew could not be found, installing..."
-    #installBrew
+    installBrew
 fi
 
 declare -A NO_CONFIG_PACKAGES=(
