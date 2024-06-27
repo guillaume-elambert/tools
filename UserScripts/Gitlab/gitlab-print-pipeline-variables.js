@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Print pipeline variables
-// @version      2024-04-12
+// @version      2024-06-27
 // @description  Display pipeline variables
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/*
+// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-print-pipeline-variables.js
+// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-print-pipeline-variables.js
 // @grant        none
 // ==/UserScript==
 

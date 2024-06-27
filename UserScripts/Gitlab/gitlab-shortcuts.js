@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Custom Gitlab shortcuts
-// @version      2024-03-01
+// @version      2024-06-27
 // @description  Add shortcuts to Gitlab
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*
+// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-shortcuts.js
+// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-shortcuts.js
 // @grant        none
 // ==/UserScript==
 

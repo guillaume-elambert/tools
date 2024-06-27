@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Configuration for Gitlab scripts
-// @version      2024-05-20
+// @version      2024-06-27
 // @description  Configuration for Gitlab scripts
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*
+// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-scripts-config.js
+// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-scripts-config.js
 // @grant        none
 // ==/UserScript==
 
