@@ -40,6 +40,9 @@ function handleShortcut(keysToBePressedStr, callback) {
 
     window.addEventListener('keydown', function (e) {
 
+        // Ensure that the user is not in a field where he can type
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
         // If the key is the first one, create a timeout to clear the keys array
         if (keys.length === 0) {
             if (shortcutsTimeouts[keysToBePressedStr]) clearTimeout(shortcutsTimeouts[keysToBePressedStr]);
