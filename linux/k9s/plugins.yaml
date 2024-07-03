@@ -1,15 +1,33 @@
 plugins:
-  export-logs:
+  export-pod-logs:
     shortCut: Ctrl-L
     confirm: true
-    description: Export logs to a file
+    description: Export pod logs to a file
     scopes:
-      - containers
       - pods
     command: bash
     background: true
     args:
       - -c 
       - |
-        mkdir -p $HOME/kubelogs/$CONTEXT; 
-        kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT > $HOME/kubelogs/$CONTEXT/$NAME.txt;
+        logs=$(kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT; 
+          echo "$logs" > $HOME/kubelogs/$CONTEXT/$NAME.txt;
+        fi
+  export-container-logs:
+    shortCut: Ctrl-L
+    confirm: true
+    description: Export container logs to a file
+    scopes:
+      - containers
+    command: bash
+    background: true
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
+          echo "$logs" > $HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt;
+        fi
