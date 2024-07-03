@@ -209,11 +209,11 @@ function generate_aliases_from_kubecontexts {
         esac
 
         alias_name="$prefix$alias_name"
-        command="# generate_aliases_from_kubecontexts::$app::${2:-default}::$context
-            export KUBECONFIG=$kubeconfig \
-            && echo -e '\e[32mSwitching to kubeconfig: \"$kubeconfig\" !\e[0m' \
-            && kubectl config use-context $context &> /dev/null \
-            && echo -e '\e[32mSwitched to context: \"$context\" !\e[0m' \
+        command="# create_aliases_from_kubecontexts::$app::${2:-default}::$context
+            export KUBECONFIG=/home/gelambert/.kube/config \\
+            && echo -e '\e[32mSwitching to kubeconfig: \"$kubeconfig\" !\e[0m' \\
+            && kubectl config use-context $context &> /dev/null \\
+            && echo -e '\e[32mSwitched to context: \"$context\" !\e[0m' \\
             && $app
         "
 
