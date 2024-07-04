@@ -15,14 +15,15 @@ plugins:
           mkdir -p $HOME/kubelogs/$CONTEXT; 
           echo "$logs" > $HOME/kubelogs/$CONTEXT/$NAME.txt;
         fi
+
   export-container-logs:
     shortCut: Ctrl-L
     confirm: true
-    description: Export container logs to a file
+    description: Open container logs in Visual Studio Code
     scopes:
       - containers
     command: bash
-    background: true
+    background: false
     args:
       - -c
       - |
@@ -31,3 +32,27 @@ plugins:
           mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
           echo "$logs" > $HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt;
         fi
+
+  pod-logs-vscode:
+    shortCut: Shift-L
+    confirm: false
+    description: Open pod logs in Visual Studio Code
+    scopes:
+      - pods
+    command: bash
+    background: true
+    args:
+      - -c 
+      - kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true | code -
+
+  container-logs-vscode:
+    shortCut: Shift-L
+    confirm: false
+    description: Export container logs to a file
+    scopes:
+      - containers
+    command: bash
+    background: true
+    args:
+      - -c
+      - kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT | code -
