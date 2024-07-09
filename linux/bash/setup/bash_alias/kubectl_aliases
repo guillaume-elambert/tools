@@ -230,6 +230,7 @@ function generate_aliases_from_kubecontexts {
     done
 }
 
+
 function generate_aliases_from_kubeconfigs {
     local app=$1
     if [ -z "$app" ] || { ! type "$app" &> /dev/null && ! type "${1}.exe" &> /dev/null; }; then
@@ -270,6 +271,7 @@ function generate_aliases_from_kubeconfigs {
     done
 }
 
+
 function kubectl_aliases {
     local regex="^alias ([^=]+)='# generate_aliases_from_kubecontexts::([^:]*)::([^:]*)::(.*)"
     local aliases
@@ -280,30 +282,115 @@ function kubectl_aliases {
         return 1
     fi
 
-    local index
-    local alias_name
-    local app
+    local printConfig=$(cat <<EOF
+[
+    {
+        "name": "Alias",
+        "regex_index": 1,
+        "min_width": 10
+    },
+    {
+        "name": "App",
+        "regex_index": 2,
+        "min_width": 5
+        
+    },
+    {
+        "name": "Kubeconfig",
+        "regex_index": 3,
+        "min_width": 10
+    },
+    {
+        "name": "Context",
+        "regex_index": 4,
+        "min_width": 10
+    }
+]
+EOF
+    )
+
+    # Each line is a json object and is an element of the array config
     local config
-    local context
-    local printf_format="\e[32m%-10s\e[0m | \e[33m%-10s\e[0m | \e[34m%-10s\e[0m | \e[35m%-10s\n\e[0m"
+    local aliasIndex=0
+    local index=0
+    local max_length=()
+
+    readarray -t config <<< "$(echo "$printConfig" | jq -rc '.[]')"
+    
+    for aliasIndex in "${!aliases[@]}"; do
+        if [[ ${aliases[$aliasIndex]} =~ $regex ]]; then
+            index=0
+            for bashRematch in "${BASH_REMATCH[@]}"; do
+                if (( "${#bashRematch}" > "${max_length[$index]:-0}" )); then
+                    max_length[$index]=${#bashRematch}
+                fi
+                ((index++))
+            done
+        fi
+    done
+    
     local additional_format='\e[1m\e[4m'
+    local column_format='\e[${COLOR}m %-${WIDTH}s \e[0m'
+    local header_format='${HEADER_STYLE}${HEADER_FORMAT}'
+    local separator_format='|'
+    local printf_format=""
+    local header_printf_format=""
+    local line width color currentFormat currentHeaderFormat sedCurrentFormat
+    local headers=()
+    local regexIndexes=()
+    index=0
 
     additional_format=$(echo $additional_format | sed -e 's/[]\/$*.^[]/\\&/g')
-    # Replace \e[[0-9]+m but not \e[0m with the value followed by \e[1m
-    local header_format=$(echo $printf_format | sed -E "s/(\\e\[[1-9][0-9]*m)/\1$additional_format/g")
+    for line in "${config[@]}"; do
+        local vars=$(echo "$line" | jq -r '"
+            local name=\"\(.name)\"
+            local regexIndex=\(.regex_index)
+            local min_width=\(.min_width)
+        "')
+        eval "$vars"
+
+        width=${min_width:-0}
+        regexIndexes+=($regexIndex)
+
+        if [ "${max_length[$regexIndex]:-0}" -gt $width ]; then
+            width=${max_length[$regexIndex]}
+        fi
+        # Check if the length of the name is greater than the width
+        if [ "${#name}" -gt "$width" ]; then
+            width=${#name}
+        fi
+
+        # Generate the printf format. it is one color for each column and the width of the column is the max length of the column
+        color=$((32 + index))
+
+        # Eval the printf format
+        currentFormat=$(echo "$column_format" | sed -e "s/\${WIDTH}/$width/g" -e "s/\${COLOR}/$color/g")
+        sedCurrentFormat=$(echo $currentFormat | sed -e 's/[]\/$*.^[]/\\&/g')
+        currentHeaderFormat=$(echo "$header_format" | sed -e "s/\${HEADER_STYLE}/$additional_format/g" -e "s/\${HEADER_FORMAT}/$sedCurrentFormat/g")
+        printf_format+="$currentFormat$separator_format"
+        header_printf_format+="$currentHeaderFormat$separator_format"
+        headers[index]=$name
+        ((index++))
+    done
+
+    # Remove the last separator
+    printf_format=${printf_format%$separator_format}
+    header_printf_format=${header_printf_format%$separator_format}
+    # Add a break line at the end
+    printf_format=" $printf_format \n"
+    header_printf_format=" $header_printf_format \n"
 
     # Print the header in bold
-    printf "$header_format" "Alias" "App" "Kubeconfig" "Context"
+    printf "$header_printf_format" "${headers[@]}"
     
     for index in "${!aliases[@]}"; do
         if [[ ${aliases[$index]} =~ $regex ]]; then
-            alias_name=${BASH_REMATCH[1]}
-            app=${BASH_REMATCH[2]}
-            config=${BASH_REMATCH[3]}
-            context=${BASH_REMATCH[4]}
-            #echo -e "\e[32m$alias_name\e[0m - \e[33m$app\e[0m - \e[34m$config\e[0m - \e[35m$context\e[0m"
-            # Do the same with printf instead of echo and colors and fixed width
-            printf "$printf_format" "$alias_name" "$app" "$config" "$context"
+            # Get all the bash rematches values from witch index is in regexIndexes
+            local bashRematches=()
+            for regexIndex in "${regexIndexes[@]}"; do
+                bashRematches+=("${BASH_REMATCH[$regexIndex]}")
+            done
+            printf "$printf_format" "${bashRematches[@]}"
         fi
     done
 }
