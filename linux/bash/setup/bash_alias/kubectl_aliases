@@ -192,9 +192,7 @@ function generate_aliases_from_kubecontexts {
     prefix=$(echo $prefix | tr -d '[:punct:]')
     prefix=$(echo $prefix | tr '[:upper:]' '[:lower:]')
 
-    local context
-    local alias_name
-    local command
+    local context alias_name command begin end
 
     for context in $contexts; do
         # Remove any non-alphanumeric characters
@@ -202,14 +200,35 @@ function generate_aliases_from_kubecontexts {
         alias_name=$(echo $alias_name | tr '[:upper:]' '[:lower:]')
 
         case $alias_name in
-            *dev) alias_name=${alias_name%dev}d;;
-            *test) alias_name=${alias_name%test}t;;
-            *preprod) alias_name=${alias_name%preprod}pp;;
-            *prod) alias_name=${alias_name%prod}p;;
+            *dev*)
+                begin=${alias_name%dev*}
+                end=${alias_name##*dev}
+                alias_name="${begin}d${end}"
+                ;;
+            *test*)
+                begin=${alias_name%test*}
+                end=${alias_name##*test}
+                alias_name="${begin}t${end}"
+                ;;
+            *pprod*)
+                begin=${alias_name%pprod*}
+                end=${alias_name##*pprod}
+                alias_name="${prefix}pp${end}"
+                ;;
+            *preprod*)
+                begin=${alias_name%preprod*}
+                end=${alias_name##*preprod}
+                alias_name="${begin}pp${end}"
+                ;;
+            *prod*)
+                begin=${alias_name%prod*}
+                end=${alias_name##*prod}
+                alias_name="${begin}p${end}"
+                ;;
         esac
 
         alias_name="$prefix$alias_name"
-        command="# create_aliases_from_kubecontexts::$app::${2:-default}::$context
+        command="# generate_aliases_from_kubecontexts::$app::${2:-default}::$context
             export KUBECONFIG=/home/gelambert/.kube/config \\
             && echo -e '\e[32mSwitching to kubeconfig: \"$kubeconfig\" !\e[0m' \\
             && kubectl config use-context $context &> /dev/null \\
@@ -226,6 +245,11 @@ function generate_aliases_from_kubecontexts {
     fi
 
     for alias_name in "${!return_array[@]}"; do
+        # Check if the alias already exists
+        if alias $alias_name &> /dev/null; then
+            continue
+        fi
+
         alias $alias_name="${return_array[$alias_name]}"
     done
 }
@@ -239,7 +263,7 @@ function generate_aliases_from_kubeconfigs {
     fi
 
     local configs
-    mapfile -d $'\0' configs < <(find -L $HOME/.kube -mindepth 2 -maxdepth 2 -type f -name 'con*fig' -print0)
+    mapfile -d $'\0' configs < <(find -L $HOME/.kube -mindepth 2 -maxdepth 2 -type f -name 'config' -print0)
     
     if [ -f "$HOME/.kube/config" ]; then
         # Add the $HOME/.kube/config file as the first element of the array
@@ -267,6 +291,11 @@ function generate_aliases_from_kubeconfigs {
     done
     
     for alias_name in "${!aliases[@]}"; do
+        # Check if the alias already exists
+        if alias $alias_name &> /dev/null; then
+            continue
+        fi
+
         alias $alias_name="${aliases[$alias_name]}"
     done
 }
