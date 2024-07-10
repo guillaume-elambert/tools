@@ -181,12 +181,12 @@ function generate_aliases_from_kubecontexts {
     local kubeconfig
     
     if [ -z "$prefix" ]; then
-        export KUBECONFIG="$HOME/.kube/config"
+        export KUBECONFIG=$(realpath "$HOME/.kube/config")
     else
-        export KUBECONFIG="$HOME/.kube/$prefix/config"
+        export KUBECONFIG=$(realpath "$HOME/.kube/$prefix/config")
     fi
 
-    kubeconfig=$KUBECONFIG
+    kubeconfig="${KUBECONFIG}"
     contexts=$(kubectl config get-contexts -o name)
     export KUBECONFIG=$kubeconfig_back
     prefix=$(echo $prefix | tr -d '[:punct:]')
@@ -250,7 +250,25 @@ function generate_aliases_from_kubecontexts {
 
     for alias_name in "${!return_array[@]}"; do
         # Check if the alias already exists
-        if alias $alias_name &> /dev/null; then
+        local iterCount=0
+        local original_alias_name=$alias_name
+        local skip=0
+
+        # If the alias referes to a command that exists, skip it
+        while type $alias_name &> /dev/null; do
+            ((iterCount++))
+            # If the iterCount is greater than the length of the app, set the iterCount to the length of the app
+            if [ $iterCount -gt ${#app} ]; then
+                # Quit the while and for loop
+                skip=1
+                break
+            fi
+
+            # Get the iterCount many letters at the beginning of the app variable
+            alias_name="${app:0:$iterCount}${original_alias_name}"
+        done
+
+        if [ $skip -eq 1 ]; then
             continue
         fi
 
@@ -296,11 +314,29 @@ function generate_aliases_from_kubeconfigs {
     
     for alias_name in "${!aliases[@]}"; do
         # Check if the alias already exists
-        if alias $alias_name &> /dev/null; then
+        local iterCount=0
+        local original_alias_name="${alias_name}"
+        local skip=0
+
+        # If the alias referes to a command that exists, skip it
+        while type "${alias_name}" &> /dev/null; do
+            ((iterCount++))
+            # If the iterCount is greater than the length of the app, set the iterCount to the length of the app
+            if [ $iterCount -gt ${#app} ]; then
+                # Quit the while and for loop
+                skip=1
+                break
+            fi
+
+            # Get the iterCount many letters at the beginning of the app variable
+            alias_name="${app:0:$iterCount}${original_alias_name}"
+        done
+
+        if [ $skip -eq 1 ]; then
             continue
         fi
 
-        alias $alias_name="${aliases[$alias_name]}"
+        alias $alias_name="${aliases[$original_alias_name]}"
     done
 }
 
@@ -427,6 +463,7 @@ EOF
         fi
     done
 }
+alias ka=kubectl_aliases
 
 generate_aliases_from_kubeconfigs k9s
 # generate_aliases_from_kubecontexts k9s
