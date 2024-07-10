@@ -227,7 +227,11 @@ function generate_aliases_from_kubecontexts {
                 ;;
         esac
 
-        alias_name="$prefix$alias_name"
+        # If alias name does not start with the prefix
+        if [[ ! $alias_name =~ ^$prefix ]]; then
+            alias_name="${prefix}${alias_name}"
+        fi
+
         command="# generate_aliases_from_kubecontexts::$app::${2:-default}::$context
             export KUBECONFIG=/home/gelambert/.kube/config \\
             && echo -e '\e[32mSwitching to kubeconfig: \"$kubeconfig\" !\e[0m' \\
