@@ -39,6 +39,10 @@ const shortcuts = {
     'Shift+b+p': (projectMatch) => new_branch_callback(projectMatch),
     // Go to run project new branch page
     'n+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    // Go to run project new merge request page
+    'Shift+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    // Go to run project new merge request page
+    'n+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
 }
 
 const new_branch_callback = (projectMatch) => {
@@ -46,6 +50,13 @@ const new_branch_callback = (projectMatch) => {
     if (!projectMatch) return;
     // Go to the pipeline page
     window.location.href = `${projectMatch[1]}/-/branches/new`;
+}
+
+const new_merge_request_callback = (projectMatch) => {
+    // Check that the URL is pointing to a Gitlab project
+    if (!projectMatch) return;
+    // Go to the pipeline page
+    window.location.href = `${projectMatch[1]}/-/merge_requests/new`;
 }
 
 
@@ -75,10 +86,10 @@ function shortcutMatchKeysCount(shortcutKeys, keys) {
  * Handle the key pressed event to launch the shortcuts
  * @param {Event} event The key pressed event
  * @param {Array} shortcuts The shortcuts to handle
- * @param {Array} keys The keys that the user has pressed
+ * @param {Array} pressed_keys The keys that the user has pressed
  * @param {Function} timeoutFunction The function to call when the timeout is reached
  */
-function handleKeyPressed(event, shortcuts, keys, timeoutFunction) {
+function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
 
     // Ensure that the user is not in a field where he can type
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
@@ -88,8 +99,8 @@ function handleKeyPressed(event, shortcuts, keys, timeoutFunction) {
     
     // Clear the timeout
     clearTimeout(shortcutsTimeout);
-    keys.push(event.key.toLowerCase());
-
+    const pressed_key = event.key.toLowerCase().replace('arrow', '')
+    pressed_keys.push(pressed_key);
 
     let completedShortcuts = [];
     let matchingShortCuts = 0;
@@ -97,23 +108,23 @@ function handleKeyPressed(event, shortcuts, keys, timeoutFunction) {
     for (const preparedShortcut of shortcuts) {
         let keysToBePressed = preparedShortcut.keysToBePressed;
 
-        if (!shortcutHasKeys(keysToBePressed, keys)) continue;
+        if (!shortcutHasKeys(keysToBePressed, pressed_keys)) continue;
         matchingShortCuts++;
         // If the keys match, call the callback
-        if (keys.length === keysToBePressed.length) {
+        if (pressed_keys.length === keysToBePressed.length) {
             completedShortcuts.push(preparedShortcut);
         }
     }
 
     if (matchingShortCuts === 0) {
         timeoutFunction();
-        keys = [event.key.toLowerCase()];
+        pressed_keys = [pressed_key];
         shortcutsTimeout = setTimeout(timeoutFunction, timeoutLength);
         return;
     }
 
     // Order the completed shortcuts by the number of keys
-    completedShortcuts.sort((a, b) => shortcutMatchKeysCount(b.keysToBePressed, keys) - shortcutMatchKeysCount(a.keysToBePressed, keys));
+    completedShortcuts.sort((a, b) => shortcutMatchKeysCount(b.keysToBePressed, pressed_keys) - shortcutMatchKeysCount(a.keysToBePressed, pressed_keys));
 
     // Call all the callbacks until one returns true
     for (const completedShortcut of completedShortcuts) {
@@ -131,18 +142,22 @@ function handleKeyPressed(event, shortcuts, keys, timeoutFunction) {
  */
 function handleShortcuts(shortcuts) {
     // var keysToBePressed = keysToBePressedStr.toLowerCase().split('+');
-    var keys = [];
+    var pressed_keys = [];
     const timeoutFunction = () => {
-        keys = [];
+        pressed_keys = [];
     }
     let prepared_shortcuts = [];
+
+    shortcuts['up+up+down+down+left+right+left+right+b+a'] = () => {
+        alert('Konami code');
+    }
 
     for (const [keysToBePressedStr, callback] of Object.entries(shortcuts)) {
         let splittedKeys = keysToBePressedStr.toLowerCase().split('+');
         prepared_shortcuts.push({"keysToBePressed": splittedKeys, "callback": callback});
     }
 
-    window.addEventListener('keydown', (event) => handleKeyPressed(event, prepared_shortcuts, keys, timeoutFunction));
+    window.addEventListener('keydown', (event) => handleKeyPressed(event, prepared_shortcuts, pressed_keys, timeoutFunction));
 }
 
 // Add the shortcuts
