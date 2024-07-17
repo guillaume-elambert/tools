@@ -38,17 +38,17 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
 
     // Regex that matches :
-    // Match 0: The full current URL
-    // Group 1: The project web_url
-    // Group 2: The full project path
-    // Group 3: The full group path
-    // Group 4: The main group name
-    // Group 5: The project name
-    // Group 6: The rest of the URL
-    const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
-    const projectUriMatch = window.location.href.match(projectPattern);
+    // Match 1: The project web_url
+    // Group 1: The full project path
+    // Group 2: The full group path
+    // Group 3: The main group name
+    // Group 4: The project name
+    const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
+    let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+    if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
+    const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 
-    let projectVariables = perProjectVariables[projectUriMatch[1]] || undefined;
+    let projectVariables = perProjectVariables[projectUriMatch[0]] || undefined;
     let variablesToUse = defaultVariables;
     if (projectVariables && Object.keys(projectVariables).length > 0) {
         variablesToUse = projectVariables;
@@ -410,7 +410,7 @@ fillVariables({
     }
 
     let buttonsToAdd = [];
-    let localStorageConfiguration = await window.loadLatestUsedConfiguration(projectUriMatch[1]) || undefined;
+    let localStorageConfiguration = await window.loadLatestUsedConfiguration(projectUriMatch[0]) || undefined;
     let currentBtnCount = 0;
 
 

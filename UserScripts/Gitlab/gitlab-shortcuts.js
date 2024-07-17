@@ -10,61 +10,63 @@
 // ==/UserScript==
 
 // Regex that matches :
-// Match 0: The full current URL
-// Group 1: The project web_url
-// Group 2: The full project path
-// Group 3: The full group path
-// Group 4: The main group name
-// Group 5: The project name
-// Group 6: The rest of the URL
-const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
+// Match 1: The project web_url
+// Group 1: The full project path
+// Group 2: The full group path
+// Group 3: The main group name
+// Group 4: The project name
+const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
+let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
+const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
+
 const timeoutLength = 1000;
 var shortcutsTimeout = undefined;
 
 const shortcuts = {
     // Go to run pipeline page
-    'r+p': (projectMatch) => {
+    'r+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/pipelines/new`;
+        window.location.href = `${projectUriMatch[0]}/-/pipelines/new`;
     },
     // Go to run project variables page
-    'v+p': (projectMatch) => {
+    'v+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
+        window.location.href = `${projectUriMatch[0]}/-/settings/ci_cd#js-cicd-variables-settings`;
     },
     // Go to run project branches page
-    'b+p': (projectMatch) => {
+    'b+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/branches`;
+        window.location.href = `${projectUriMatch[0]}/-/branches`;
     },
     // Go to run project new branch page
-    'Shift+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    'Shift+b+p': (projectUriMatch) => new_branch_callback(projectUriMatch),
     // Go to run project new branch page
-    'n+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    'n+b+p': (projectUriMatch) => new_branch_callback(projectUriMatch),
     // Go to run project new merge request page
-    'Shift+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    'Shift+m+p': (projectUriMatch) => new_merge_request_callback(projectUriMatch),
     // Go to run project new merge request page
-    'n+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    'n+m+p': (projectUriMatch) => new_merge_request_callback(projectUriMatch),
 }
 
-const new_branch_callback = (projectMatch) => {
+const new_branch_callback = (projectUriMatch) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectMatch) return;
+    if (!projectUriMatch) return;
     // Go to the pipeline page
-    window.location.href = `${projectMatch[1]}/-/branches/new`;
+    window.location.href = `${projectUriMatch[0]}/-/branches/new`;
 }
 
-const new_merge_request_callback = (projectMatch) => {
+const new_merge_request_callback = (projectUriMatch) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectMatch) return;
+    if (!projectUriMatch) return;
     // Go to the pipeline page
-    window.location.href = `${projectMatch[1]}/-/merge_requests/new`;
+    window.location.href = `${projectUriMatch[0]}/-/merge_requests/new`;
 }
 
 
@@ -137,8 +139,7 @@ function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
     // Call all the callbacks until one returns true
     for (const completedShortcut of completedShortcuts) {
         let callback = completedShortcut.callback;
-        let projectMatch = window.location.href.match(projectPattern);
-        if (callback(projectMatch)) return;
+        if (callback(projectUriMatch)) return;
     }
 
     shortcutsTimeout = setTimeout(timeoutFunction, timeoutLength);

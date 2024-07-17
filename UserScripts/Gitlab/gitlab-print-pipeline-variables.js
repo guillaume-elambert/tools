@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Print pipeline variables
-// @version      2024-06-27
+// @version      2024-07-17
 // @description  Display pipeline variables
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/*
@@ -32,8 +32,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     window.getPipelineVariables = (projectPath, pipelineId) => {
         return fetch(
-            `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectPath)}/pipelines/${pipelineId}/variables`,
-            {
+            `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectPath)}/pipelines/${pipelineId}/variables`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -157,24 +156,34 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     `;
     document.head.appendChild(style);
 
+    // Regex that matches :
+    // Group 1: The project web_url
+    // Group 2: The full project path
+    // Group 3: The full group path
+    // Group 4: The main group name
+    // Group 5: The project name
+    // Group 6: The pipeline ID
+    const projectPattern = /(https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+)))\/-\/pipelines\/(\d+)(\/.*)?/i;
+    let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+    if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
+    const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 
-    const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))\/-\/pipelines\/(\d+)(\/.*)?/i;
-    var match = window.location.href.match(projectPattern);
-
-    if (match && match.length >= 7) {
+    if (projectUriMatch && projectUriMatch.length >= 7) {
         // Wait until body has class 'page-initialised'
         const observer = new MutationObserver((mutationsList, observer) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     if (mutation.target.classList.contains('page-initialised')) {
-                        addVariablesInPipelineHeader(match[2], match[6]);
+                        addVariablesInPipelineHeader(projectUriMatch[2], projectUriMatch[6]);
                         observer.disconnect();
                         return;
                     }
                 }
             }
         });
-        observer.observe(document.body, { attributes: true });
+        observer.observe(document.body, {
+            attributes: true
+        });
     }
 }).catch(() => {
     return;

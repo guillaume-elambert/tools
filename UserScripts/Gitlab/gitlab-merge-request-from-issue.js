@@ -38,23 +38,23 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return;
     }
     // Regex that matches :
-    // Match 0: The full current URL
-    // Group 1: The project web_url
-    // Group 2: The full project path
-    // Group 3: The full group path
-    // Group 4: The main group name
-    // Group 5: The project name
-    // Group 6: The rest of the URL
-    const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
-    const projectUriMatch = window.location.href.match(projectPattern);
+    // Match 1: The project web_url
+    // Group 1: The full project path
+    // Group 2: The full group path
+    // Group 3: The main group name
+    // Group 4: The project name
+    const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
+    let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+    if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
+    const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 
     if (!projectUriMatch) {
         console.error('Error while matching the project URI');
         return;
     }
 
-    // Check if the object has a key with the value of the project URIMatch[1]
-    const projectConfig = scriptConfig[projectUriMatch[1]];
+    // Check if the object has a key with the value of the project URIMatch[0]
+    const projectConfig = scriptConfig[projectUriMatch[0]];
     if (!projectConfig) {
         console.error('No configuration found for the project');
         return;
@@ -152,7 +152,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             if (hasDeveloperAccess) break;
         }
 
-        return (project.archived && project.merge_requests_enabled && project.default_branch && project.web_url !== projectUriMatch[1] && hasDeveloperAccess)
+        return (project.archived && project.merge_requests_enabled && project.default_branch && project.web_url !== projectUriMatch[0] && hasDeveloperAccess)
     }
 
 
@@ -255,7 +255,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     // If projectConfig.projects is not defined or empty
     if (!projectConfig.projects || !Object.keys(projectConfig.projects).length) {
         // Get the organization
-        const organization = projectUriMatch[4];
+        const organization = projectUriMatch[3];
         let projects = undefined;
 
         try {
@@ -275,7 +275,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         // Remove the projects that do not exists or that the user does not have access or that are archived or that do not have merge requests enabled
         for (const key in projects) {
             try {
-                const project = await window.getProject(key.match(projectPattern)[2]);
+                const project = await window.getProject(key.match(projectPattern)[1]);
 
                 if (!window.isValidProject(project)) {
                     // Remove the project from the list
@@ -290,7 +290,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
                 apiLoadedProjects.push(project);
             } catch (error) {
-                console.error(`Error while fetching the project ${key.match(projectPattern)[2]}`);
+                console.error(`Error while fetching the project ${key}`);
                 // Remove the project from the list
                 delete projectConfig.projects[key];
                 continue;
@@ -327,17 +327,17 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     issueTitle = `${projectConfig['merge-request-title-prefix'] ?? ''}${issueTitle}`.replace('<ISSUE_ID>', issueId);
 
     checkboxesContainer.innerHTML = checkboxes + `
-    <div class="gl-flex gl-flex-col gl-mt-4">
+    <div class="gl-flex gl-flex-col gl-mt-4 gl-show-field-errors">
         <div class="form-group">
             <label for="merge-requests-name">Merge request title</label>
-            <input type="text" id="merge-requests-title" name="merge-requests-title" value="${issueTitle}" class="gl-form-input gl-w-full gl-show-field-errors" placeholder="${issueTitle}">
-            <p class="gl-field-error hidden" id="field-error-mr">This field is required.</p>
+            <input type="text" id="merge-requests-title" name="merge-requests-title" value="${issueTitle}" class="gl-form-input gl-w-full" placeholder="${issueTitle}">
+            <span class="gl-field-error hidden" id="field-error-mr">This field is required.</span>
         </div>
 
         <div class="form-group">
             <label for="branches-title">Branches name</label>
-            <input type="text" id="branches-name" name="branches-title" value="${branchesName}" class="gl-form-input gl-w-full gl-show-field-errors" placeholder="${branchesName}">
-            <p class="gl-field-error hidden" id="field-error-br">This field is required.</p>
+            <input type="text" id="branches-name" name="branches-title" value="${branchesName}" class="gl-form-input gl-w-full" placeholder="${branchesName}">
+            <span class="gl-field-error hidden" id="field-error-br">This field is required.</span>
             <span id="branch-availability" class="js-branch-message form-text gl-font-sm hidden"></span>
         </div>
 
@@ -349,22 +349,26 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     </div>
     `;
 
-    window.checkAllBranchAvailabilityForProjects = async (projects, branch) => {
-        let availability = {};
+    window.getProjectsWhereBranchNameUnavailable = async (projects, branch) => {
+        let projectsWithBranchesUnavailable = [];
         for (const project of projects) {
             try {
-                availability[project] = await window.checkBranchAvailability(project.match(projectPattern)[2], branch);
+                if (!await window.checkBranchAvailability(project.web_url.match(projectPattern)[1], branch)) {
+                    projectsWithBranchesUnavailable.push(project);
+                }
             } catch (error) {
                 console.error(`Error while checking the branch availability on ${project}`);
-                availability[project] = false;
+                projectsWithBranchesUnavailable.push(project);
             }
         }
-        return availability;
+        return projectsWithBranchesUnavailable;
     }
 
     window.getSelectedProjects = () => {
-        const checkboxes = document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]:checked');
-        return Array.from(checkboxes).map(checkbox => checkbox.value);
+        let checkboxes = document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]:checked');
+        if (!checkboxes || !checkboxes.length) return {};
+        checkboxes = Array.from(checkboxes).map(checkbox => checkbox.value);
+        return apiLoadedProjects.filter(project => checkboxes.includes(project.web_url));
     }
 
     window.validateBrMrForm = async (projects) => {
@@ -388,16 +392,17 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         let isValid = true;
         if (!branchesName || branchesName.trim() === '') {
             fieldErrorBr.classList.remove('hidden');
+            branchAvailability.classList.add('hidden');
+            branchNameInput.classList.add('gl-field-error-outline');
+            branchNameInput.classList.remove('gl-field-success-outline');
             isValid = false;
         } else {
             fieldErrorBr.classList.add('hidden');
-            const branchesAvailability = await window.checkAllBranchAvailabilityForProjects(selectedProjects, branchesName);
+            const projectsWithBranchesUnavailable = await window.getProjectsWhereBranchNameUnavailable(selectedProjects, branchesName);
 
             // Get a string of all the projects that have the branch already taken separated by a comma
-            let projectsWithBranch = Object.keys(branchesAvailability).filter(project => !branchesAvailability[project]).map(project => {
-                let projectName = projects.find(p => p.web_url === project).name;
-                return `\"${projectName}\"`
-            }).join(', ');
+            let projectsWithBranch = projectsWithBranchesUnavailable.map(project => `\"${project.name}\"`).join(', ');
+
             if (projectsWithBranch) {
                 branchAvailability.classList.remove('hidden');
                 branchAvailability.classList.remove('gl-text-green-500');
@@ -449,7 +454,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         let issue = undefined;
         try {
-            issue = await window.getIssue(projectUriMatch[2], issueId);
+            issue = await window.getIssue(projectUriMatch[1], issueId);
         } catch (error) {
             console.error(`Error while fetching the issue ${issueId}`);
             return;
@@ -459,32 +464,40 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         let description = issue.description ?? '';
 
         for (const project of selectedProjects) {
-            const projectUri = project.match(projectPattern)[2];
-            const apiLoadedProject = apiLoadedProjects.find(p => p.web_url === project);
-            const sourceBranch = apiLoadedProject.default_branch;
-            const remove_source_branch = apiLoadedProject.remove_source_branch ?? projectConfig.remove_source_branch ?? false;
-            const squash = apiLoadedProject.squash ?? projectConfig.squash ?? false;
+            const projectUri = project.web_url;
+            const sourceBranch = project.default_branch;
+            const remove_source_branch = project.remove_source_branch ?? projectConfig.remove_source_branch ?? false;
+            const squash = project.squash ?? projectConfig.squash ?? false;
 
-            try {
-                const branch = await window.createBranch(projectUri, branchName, sourceBranch);
-                if (!branch) throw new Error();
+            console.log({
+                "projectUri": projectUri,
+                "branchName": branchName,
+                "sourceBranch": sourceBranch,
+                "mergeRequestTitle": mergeRequestTitle,
+                "assignee_ids": assignee_ids,
+                "remove_source_branch": remove_source_branch,
+                "squash": squash,
+            })
+            // try {
+            //     const branch = await window.createBranch(projectUri, branchName, sourceBranch);
+            //     if (!branch) throw new Error();
 
-            } catch (error) {
-                console.error(`Error while creating the branch on ${project}`);
-                continue;
-            }
+            // } catch (error) {
+            //     console.error(`Error while creating the branch on ${project}`);
+            //     continue;
+            // }
 
-            const mergeRequestDescription = `Related to ${projectUriMatch[0]}\n\n${description}`;
-            try {
-                const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
-                if (!mergeRequest) throw new Error();
+            // const mergeRequestDescription = `Related to ${window.location.href}\n\n${description}`;
+            // try {
+            //     const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
+            //     if (!mergeRequest) throw new Error();
 
-                // Open the merge request page in a new tab
-                window.open(mergeRequest.web_url, '_blank');
-            } catch (error) {
-                console.error(`Error while creating the merge request on ${project}`);
-                continue;
-            }
+            //     // Open the merge request page in a new tab
+            //     window.open(mergeRequest.web_url, '_blank');
+            // } catch (error) {
+            //     console.error(`Error while creating the merge request on ${project}`);
+            //     continue;
+            // }
         }
     });
 
