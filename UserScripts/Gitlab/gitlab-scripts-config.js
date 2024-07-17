@@ -53,6 +53,37 @@ const GITLAB_SCRIPTS_CONFIG = {
             },
         }
     },
+    CREATE_MERGE_REQUESTS_ON_OTHER_PROJECTS_FROM_ISSUE: {
+        // The keys are the project where the plugin will be active
+        "https://gitlab.com/group/projecton": {
+            "branch-name-prefix": "OPS <ISSUE_ID> - ",
+            "merge-request-title-prefix": "OPS <ISSUE_ID> - ",
+            "remove_source_branch": true,
+            "squash": true,
+            "excluded_projects": [
+                "https://gitlab.com/toexclude/project1",
+                "https://gitlab.com/anothergroup/project2",
+            ],
+            /* 
+            If the 'projects' key is not provided, it will show all the projects in the group (including all sub-group) that are not in the 'excluded_projects' list.
+            ie. The issue is in the project 'https://gitlab.com/mygroup/asubgroup/project3' and the 'projects' key is not provided, 
+                it will show all the projects in the 'mygroup' (including all sub-group) that are not in the 'excluded_projects' list.
+            */
+            "projects": {
+                "https://gitlab.com/toinclude/project1": {
+                    "name": "X30",
+                    "default_branch": "dev",
+                    "remove_source_branch": false, // override the global value
+                    "squash": false, // override the global value
+                },
+                "https://gitlab.com/anothergroup/subgroup/project2": {
+                    "name": "C30",
+                    "default_branch": "dev"
+                    // Global values will be used for 'remove_source_branch' and 'squash'
+                },
+            }
+        }
+    }
 };
 
 const variablePrefix = 'GITLAB_SCRIPTS_CONFIG_';

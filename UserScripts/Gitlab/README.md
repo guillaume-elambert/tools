@@ -11,12 +11,13 @@ Here are some scripts be injected into Gitlab website to enhance the user experi
 
 ## Scripts
 
-| Name                                                             | Description                                                                                          |
-| :--------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
-| [Configuration for Gitlab scripts](./gitlab-scripts-config.js)   | Script containing the configuration for the other scripts.                                           |
-| [Run pipeline helper](./gitlab-new-pipeline-helper.js)           | Autofill variables form when running a new pipeline.                                                 |
-| [Print pipeline variables](./gitlab-print-pipeline-variables.js) | Adds a container to the pipeline view to see the variables you had set manually to run the pipeline. |
-| [Custom Gitlab shortcuts](./gitlab-shortcuts.js)                 | Adds custom shortcuts to Gitlab.                                                                     |
+| Name                                                                                         | Description                                                                                                             |
+| :------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| [Configuration for Gitlab scripts](./gitlab-scripts-config.js)                               | Script containing the configuration for the other scripts.                                                              |
+| [Run pipeline helper](./gitlab-new-pipeline-helper.js)                                       | Autofill variables form when running a new pipeline.                                                                    |
+| [Print pipeline variables](./gitlab-print-pipeline-variables.js)                             | Adds a container to the pipeline view to see the variables you had set manually to run the pipeline.                    |
+| [Custom Gitlab shortcuts](./gitlab-shortcuts.js)                                             | Adds custom shortcuts to Gitlab.                                                                                        |
+| [Create merge request on other projects from an issue](./gitlab-merge-request-from-issue.js) | Allows to create merge requestes on other projects from an issue. It will not create an issue on the selected projects. |
 
 ## Configuration
 
@@ -33,10 +34,10 @@ Refer to the [Gitlab documentation][gitlab-token] to create a private token.
 
 ```javascript
 const GITLAB_SCRIPTS_CONFIG = {
-  // ...
-  API_PRIVATE_TOKEN: "", // replace with your private token
-  AUTHOR_EMAILS: ["", "", ""], // replace with your email(s)
-  // ...
+    // ...
+    API_PRIVATE_TOKEN: "", // replace with your private token
+    AUTHOR_EMAILS: ["", "", ""], // replace with your email(s)
+    // ...
 };
 ```
 
@@ -60,49 +61,45 @@ Order of value: `Local storage` -> `PER_PROJECT` -> `DEFAULT`
 
 ```javascript
 const GITLAB_SCRIPTS_CONFIG = {
-  // ...
-  PIPELINE_VARIABLES: {
-    DICTIONARY: {
-      variable1: "This is the gloable description of variable 1",
-      variable2: "This is the gloable description of variable 2",
-      variable3: "This is the gloable description of variable 3",
-      variable4: "This is the gloable description of variable 4",
-    },
-    DEFAULT: {
-      variable1: {
-        value: "value1",
-        description:
-          'This will override the "DICTIONARY" description fro variable1.',
-      },
-      variable2: {
-        value: "value2",
-        description:
-          'This will override the "DICTIONARY" description fro variable2.',
-      },
-      variable3: "value3",
-    },
-    PER_PROJECT: {
-      "https://gitlab.com/some-project": {
-        // override the default value for the project some-project. It will not override the description and use the DEFAULT one
-        variable1: "not value1",
-        variable2: {
-          value: "not value2", // override the value for the project some-project
-          description:
-            "This is a description for variable2 for the project some-project", // override the description for the project some-project
+    // ...
+    PIPELINE_VARIABLES: {
+        DICTIONARY: {
+            variable1: "This is the gloable description of variable 1",
+            variable2: "This is the gloable description of variable 2",
+            variable3: "This is the gloable description of variable 3",
+            variable4: "This is the gloable description of variable 4",
         },
-        "another-variable": {
-          value: "another-value",
-          description:
-            "This is a description for another-variable for the project some-project",
+        DEFAULT: {
+            variable1: {
+                value: "value1",
+                description: 'This will override the "DICTIONARY" description fro variable1.',
+            },
+            variable2: {
+                value: "value2",
+                description: 'This will override the "DICTIONARY" description fro variable2.',
+            },
+            variable3: "value3",
         },
-        variable4: "value4", // Will use the DICIONARY description
-        // variable 3 will NOT be inserted in the project some-project pipeline variables
-        // If it is manually added, it will have the description from the DICTIONARY
-        // DESCRIPTION ORDER MATTERS: DICTIONARY -> DEFAULT -> PER_PROJECT
-      },
+        PER_PROJECT: {
+            "https://gitlab.com/some-project": {
+                // override the default value for the project some-project. It will not override the description and use the DEFAULT one
+                variable1: "not value1",
+                variable2: {
+                    value: "not value2", // override the value for the project some-project
+                    description: "This is a description for variable2 for the project some-project", // override the description for the project some-project
+                },
+                "another-variable": {
+                    value: "another-value",
+                    description: "This is a description for another-variable for the project some-project",
+                },
+                variable4: "value4", // Will use the DICIONARY description
+                // variable 3 will NOT be inserted in the project some-project pipeline variables
+                // If it is manually added, it will have the description from the DICTIONARY
+                // DESCRIPTION ORDER MATTERS: DICTIONARY -> DEFAULT -> PER_PROJECT
+            },
+        },
     },
-  },
-  // ...
+    // ...
 };
 ```
 
@@ -115,21 +112,77 @@ The value is a function that will be called when the shortcut is pressed.
 
 ```javascript
 const shortcuts = {
-  // Go to run pipeline page
-  "r+p": (projectMatch) => {
-    // Check that the URL is pointing to a Gitlab project
-    if (!projectMatch) return;
-    // Go to the pipeline page
-    window.location.href = `${projectMatch[1]}/-/pipelines/new`;
-  },
-  // Go to run project variables page
-  "p+v": (projectMatch) => {
-    // Check that the URL is pointing to a Gitlab project
-    if (!projectMatch) return;
-    // Go to the pipeline page
-    window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
-  },
-};
+    // Go to run pipeline page
+    'r+p': (projectMatch) => {
+        // Check that the URL is pointing to a Gitlab project
+        if (!projectMatch) return;
+        // Go to the pipeline page
+        window.location.href = `${projectMatch[1]}/-/pipelines/new`;
+    },
+    // Go to run project variables page
+    'v+p': (projectMatch) => {
+        // Check that the URL is pointing to a Gitlab project
+        if (!projectMatch) return;
+        // Go to the pipeline page
+        window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
+    },
+    // Go to run project branches page
+    'b+p': (projectMatch) => {
+        // Check that the URL is pointing to a Gitlab project
+        if (!projectMatch) return;
+        // Go to the pipeline page
+        window.location.href = `${projectMatch[1]}/-/branches`;
+    },
+    // Go to run project new branch page
+    'Shift+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    // Go to run project new branch page
+    'n+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    // Go to run project new merge request page
+    'Shift+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    // Go to run project new merge request page
+    'n+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+}
 ```
 
 [gitlab-token]: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html
+
+
+### Configuration - `Create merge request on other projects from an issue`
+
+> _Configuration is to be defined within the file [`Configuration for Gitlab scripts`](./gitlab-scripts-config.js)_
+
+```javascript
+const GITLAB_SCRIPTS_CONFIG = {
+    CREATE_MERGE_REQUESTS_ON_OTHER_PROJECTS_FROM_ISSUE: {
+        // The keys are the project where the plugin will be active
+        "https://gitlab.com/group/projecton": {
+            "branch-name-prefix": "OPS <ISSUE_ID> - ",
+            "merge-request-title-prefix": "OPS <ISSUE_ID> - ",
+            "remove_source_branch": true,
+            "squash": true,
+            "excluded_projects": [
+                "https://gitlab.com/toexclude/project1",
+                "https://gitlab.com/anothergroup/project2",
+            ],
+            /* 
+            If the 'projects' key is not provided, it will show all the projects in the group (including all sub-group) that are not in the 'excluded_projects' list.
+            ie. The issue is in the project 'https://gitlab.com/mygroup/asubgroup/project3' and the 'projects' key is not provided, 
+                it will show all the projects in the 'mygroup' (including all sub-group) that are not in the 'excluded_projects' list.
+            */
+            "projects": {
+                "https://gitlab.com/toinclude/project1": {
+                    "name": "X30",
+                    "default_branch": "dev",
+                    "remove_source_branch": false, // override the global value
+                    "squash": false, // override the global value
+                },
+                "https://gitlab.com/anothergroup/subgroup/project2": {
+                    "name": "C30",
+                    "default_branch": "dev"
+                    // Global values will be used for 'remove_source_branch' and 'squash'
+                },
+            }
+        }
+    }
+}
+```

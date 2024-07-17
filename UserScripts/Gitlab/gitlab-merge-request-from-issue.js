@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Create merge request on other projects from issue
-// @version      2024-07-03
+// @version      2024-07-17
 // @description  Create a merge request on a related but different projects from an issue
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/issues/*
@@ -32,7 +32,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const GITLAB_DEVELOPER_ACCESS = 30;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
-    const scriptConfig = window.loadConfigurations('CUSTOM_MERGE_REQUESTS_FROM_ISSUE');
+    const scriptConfig = window.loadConfigurations('CREATE_MERGE_REQUESTS_ON_OTHER_PROJECTS_FROM_ISSUE');
     if (!privateToken || !scriptConfig) {
         console.error('Error while loading the configuration');
         return;
@@ -278,6 +278,8 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
                 if (projects[key].name) projects[key].name = project.name;
                 if (projects[key].default_branch) projects[key].default_branch = project.default_branch;
+                if (projects[key].squash) projects[key].squash = project.squash;
+                if (projects[key].remove_source_branch) projects[key].remove_source_branch = project.remove_source_branch;
 
                 apiLoadedProjects.push(project);
             } catch (error) {
@@ -290,8 +292,8 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }
 
     // Check if the projectConfig has the exlude_projects key
-    if (projectConfig.exclude_projects) {
-        for (const project of projectConfig.exclude_projects) {
+    if (projectConfig.excluded_projects) {
+        for (const project of projectConfig.excluded_projects) {
             // Find in apiLoaded the project that match the project
             const projectIndex = apiLoadedProjects.findIndex(p => p.web_url === project);
             if (projectIndex === -1) continue;
