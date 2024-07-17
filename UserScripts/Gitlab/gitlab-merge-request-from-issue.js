@@ -86,7 +86,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.createMergeRequest = async (project, source, target, title, assignee_ids = []) => {
+    window.createMergeRequest = async (project, source, target, title, assignee_ids = [], remove_source_branch = false, squash = false) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/merge_requests?private_token=${privateToken}`, {
             method: 'POST',
@@ -98,9 +98,19 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 "target_branch": target,
                 "title": title,
                 "assignee_ids": assignee_ids,
+                "remove_source_branch": remove_source_branch,
+                "squash": squash,
+                "reviewer_ids": reviewer_ids,
             }),
         });
 
+        return await response.json();
+    }
+
+    window.getIssue = async (project, issue) => {
+        project = encodeURIComponent(project);
+        issue = encodeURIComponent(issue);
+        const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/issues/${issue}?private_token=${privateToken}`);
         return await response.json();
     }
 
@@ -349,12 +359,37 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const branchNameInput = document.getElementById('branches-name');
     const mergeRequestInput = document.getElementById('merge-requests-title');
     window.projectConfig = projectConfig;
+    console.log(projectUriMatch[2], issueId);
 
     branchNameInput.addEventListener('input', window.validateBrMrForm);
     mergeRequestInput.addEventListener('input', window.validateBrMrForm);
     document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', window.validateBrMrForm));
 
+    // Create an event listener for the button
+    const createBranchesButton = document.getElementById('create-branches');
+    createBranchesButton.addEventListener('click', async () => {
+        const selectedProjects = window.getSelectedProjects();
+        const branchName = branchNameInput.value;
+        const mergeRequestTitle = mergeRequestInput.value;
 
-    // gl-field-success-outline   gl-text-green-500
-    // gl-field-error-outline   gl-text-red-500
+        if (!await window.validateBrMrForm()) return;
+
+        let issue = await window.getIssue(projectUriMatch[2], issueId);
+        let assignee_ids = issue.assignees.map(assignee => assignee.id);
+
+        for (const project of selectedProjects) {
+            const projectUri = project.match(projectPattern)[2];
+            const sourceBranch = projectConfig.projects[project].source;
+            const remove_source_branch = projectConfig.projects[project].remove_source_branch ?? projectConfig.remove_source_branch ?? false;
+            const squash = projectConfig.projects[project].squash ?? projectConfig.squash ?? false;
+
+            await window.createBranch(projectUri, branchName, sourceBranch);
+            await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, assignee_ids, remove_source_branch, squash);
+
+            // Open the merge request page in a new tab
+
+        }
+    });
+
+
 });
