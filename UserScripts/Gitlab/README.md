@@ -170,7 +170,8 @@ const GITLAB_SCRIPTS_CONFIG = {
             "branch-name-prefix": "OPS <ISSUE_ID> - ",
             "merge-request-title-prefix": "OPS <ISSUE_ID> - ",
             "remove_source_branch": true,
-            "squash": true,
+            "squash": false,
+            "include_issue_description": false,
             "excluded_projects": [
                 "https://gitlab.com/toexclude/project1",
                 "https://gitlab.com/anothergroup/project2",
@@ -185,7 +186,7 @@ const GITLAB_SCRIPTS_CONFIG = {
                     "name": "X30",
                     "default_branch": "dev",
                     "remove_source_branch": false, // override the global value
-                    "squash": false, // override the global value
+                    "squash": true, // override the global value
                 },
                 "https://gitlab.com/anothergroup/subgroup/project2": {
                     "name": "C30",

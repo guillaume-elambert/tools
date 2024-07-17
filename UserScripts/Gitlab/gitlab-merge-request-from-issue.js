@@ -28,7 +28,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }, 100);
 }).then(async () => {
 
-
     const GITLAB_DEVELOPER_ACCESS = 30;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
@@ -60,7 +59,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return;
     }
 
-    window.getGroupProjects = async (group) => {
+    const getGroupProjects = async (group) => {
         group = encodeURIComponent(group);
         // Ensure it has the right of developer
         const response = await fetch(`https://gitlab.com/api/v4/groups/${group}/projects?min_access_level=${GITLAB_DEVELOPER_ACCESS}&include_subgroups=true&with_merge_requests_enabled=true&archived=false&per_page=100&private_token=${privateToken}`);
@@ -70,7 +69,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.getProject = async (project) => {
+    const getProject = async (project) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}?private_token=${privateToken}`);
         if (!response.ok) {
@@ -79,7 +78,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.checkBranchAvailability = async (project, branchName) => {
+    const checkBranchAvailability = async (project, branchName) => {
         // Check if the project has a branch with the same name
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/repository/branches?private_token=${privateToken}`)
@@ -90,7 +89,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return (await response.json()).find(branch => branch.name === branchName) === undefined;
     }
 
-    window.createBranch = async (project, branch, source_branch) => {
+    const createBranch = async (project, branch, source_branch) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/repository/branches?private_token=${privateToken}`, {
             method: 'POST',
@@ -108,7 +107,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.createMergeRequest = async (project, source_branch, target_branch, title, description = '', assignee_ids = [], remove_source_branch = false, squash = false) => {
+    const createMergeRequest = async (project, source_branch, target_branch, title, description = '', assignee_ids = [], remove_source_branch = false, squash = false) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/merge_requests?private_token=${privateToken}`, {
             method: 'POST',
@@ -123,7 +122,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 "assignee_ids": assignee_ids,
                 "remove_source_branch": remove_source_branch,
                 "squash": squash,
-                "reviewer_ids": reviewer_ids,
             }),
         });
         if (!response.ok) {
@@ -132,7 +130,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.getIssue = async (project, issue) => {
+    const getIssue = async (project, issue) => {
         project = encodeURIComponent(project);
         issue = encodeURIComponent(issue);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/issues/${issue}?private_token=${privateToken}`);
@@ -142,7 +140,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.isValidProject = async (project) => {
+    const isValidProject = async (project) => {
         if (!project.permissions) return false;
 
         let hasDeveloperAccess = false;
@@ -156,33 +154,35 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }
 
 
-    async function computeProjectsCheckboxes(projects) {
+    const computeProjectsCheckboxes = async (projects) => {
 
-        let checkboxes = '';
+        let checkboxes = [];
 
         // If the projectConfig has no 
         for (const project of projects) {
-            let targetProjectUri = project.web_url
+            let targetProjectUri = project.web_url;
             let projectName = project.name;
             let sourceBranch = project.default_branch;
-
-            checkboxes += `
-                <div class="gl-form-checkbox">
-                    <input type="checkbox" id="create-branch-${targetProjectUri}" name="create-branch-${targetProjectUri}" value="${targetProjectUri}">
-                    <label for="create-branch-${targetProjectUri}">
-                        <span class="gl-form-checkbox-text">
-                            <span>${projectName}</span>
-                            <span class="gl-italic gl-text-secondary gl-text-sm gl-ml-2">${sourceBranch}</span>
-                        </span>
-                    </label>
-                </div>
+            let checkbox = document.createElement('div');
+            checkbox.innerHTML = `
+                <input type="checkbox" id="create-branch-${targetProjectUri}" name="create-branch-${targetProjectUri}" value="${targetProjectUri}" style="cursor: pointer;">
+                <label for="create-branch-${targetProjectUri}" class="gl-ml-2" style="cursor: pointer;">
+                    <span class="gl-form-checkbox-text">
+                        <span>${projectName}</span>
+                        <span class="gl-italic gl-text-secondary gl-text-sm gl-ml-2">${sourceBranch}</span>
+                    </span>
+                </label>
             `;
+            checkbox.classList = "gl-form-checkbox";
+            checkbox.style.cursor = "pointer";
+            checkbox.title = `Create new branch and merge request on "${projectName}" based on the branch "${sourceBranch}".`;
+            checkboxes.push(checkbox);
         }
 
         return checkboxes;
     }
 
-    window.getIcon = (slug) => {
+    const getIcon = (slug) => {
         // The slug should be get from https://gitlab-org.gitlab.io/gitlab-svgs/
         let randomIcon = document.querySelector(`.gl-icon[data-testid="${slug}-icon"]`);
 
@@ -200,15 +200,16 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }
 
 
-    const chevronIcon = window.getIcon('chevron-lg-up');
-    const mergeRequestIcon = window.getIcon('merge-request');
+    const chevronIcon = getIcon('chevron-lg-up');
+    const mergeRequestIcon = getIcon('merge-request');
 
-    window.chevronIcon = chevronIcon;
     // Add div before #tasks
     const tasks = document.getElementById('tasks');
     const div = document.createElement('div');
-    let widget = `
-    <div id="custom-merge-requests" class="gl-new-card">
+    // Detect theme used html element has class gl-dark
+    let theme = document.querySelector('html').classList.contains('gl-dark') ? 'dark' : 'light';
+    let widgetInnerHtml = `
+    <div id="custom-merge-requests" class="gl-card gl-new-card">
         <div class="gl-new-card-header">
             <div class="gl-new-card-title-wrapper">
                 <h2 class="gl-new-card-title">
@@ -226,7 +227,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 </span>
             </div>
             <div class="gl-new-card-toggle">
-                <button aria-label="Collapse" data-testid="widget-toggle" aria-expanded="true" type="button"
+                <button id="toggle-custom-merge-requests-button" type="button"
                     class="btn btn-default btn-sm gl-button btn-default-tertiary btn-icon">
                     <svg role="img" aria-hidden="true"
                         class="gl-button-icon gl-icon s16 gl-fill-current">
@@ -236,16 +237,16 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             </div>
         </div>
 
-        <div data-testid="widget-body" class="gl-new-card-body">
+        <div id="custom-merge-requests-widget-body" class="gl-new-card-body">
             <div id="custom-merge-requests-checkboxes-container" class="gl-new-card-content gl-px-0">
                 <div class="gl-spinner-container js-create-mr-spinner gl-button-icon" role="status">
                     <span aria-label="Loading"
-                        class="gl-spinner gl-spinner-sm gl-spinner-dark gl-vertical-align-text-bottom!"></span>
+                        class="gl-spinner gl-spinner-sm ${theme == "dark" ? "gl-spinner-dark" : ""} gl-vertical-align-text-bottom!"></span>
                 </div>
             </div>
         </div>
     </div>`;
-    div.innerHTML = widget;
+    div.innerHTML = widgetInnerHtml;
 
     tasks.parentElement.insertBefore(div, tasks);
 
@@ -259,7 +260,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         let projects = undefined;
 
         try {
-            projects = await window.getGroupProjects(organization);
+            projects = await getGroupProjects(organization);
         } catch (error) {
             console.error(`Error while fetching the project for the organization ${organization}`);
             return;
@@ -275,9 +276,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         // Remove the projects that do not exists or that the user does not have access or that are archived or that do not have merge requests enabled
         for (const key in projects) {
             try {
-                const project = await window.getProject(key.match(projectPattern)[1]);
+                const project = await getProject(key.match(projectPattern)[1]);
 
-                if (!window.isValidProject(project)) {
+                if (!isValidProject(project)) {
                     // Remove the project from the list
                     delete projectConfig.projects[key];
                     continue;
@@ -287,6 +288,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 if (projects[key].default_branch) projects[key].default_branch = project.default_branch;
                 if (projects[key].squash) projects[key].squash = project.squash;
                 if (projects[key].remove_source_branch) projects[key].remove_source_branch = project.remove_source_branch;
+                if (projects[key].include_issue_description) projects[key].include_issue_description = project.include_issue_description;
 
                 apiLoadedProjects.push(project);
             } catch (error) {
@@ -326,19 +328,24 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     branchesName = branchesName.replace('<ISSUE_ID>', issueId).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
     issueTitle = `${projectConfig['merge-request-title-prefix'] ?? ''}${issueTitle}`.replace('<ISSUE_ID>', issueId);
 
-    checkboxesContainer.innerHTML = checkboxes + `
+    checkboxesContainer.innerHTML = '';
+    for (const checkbox of checkboxes) {
+        checkboxesContainer.appendChild(checkbox)
+    }
+
+    checkboxesContainer.innerHTML = checkboxesContainer.innerHTML + `
     <div class="gl-flex gl-flex-col gl-mt-4 gl-show-field-errors">
         <div class="form-group">
             <label for="merge-requests-name">Merge request title</label>
             <input type="text" id="merge-requests-title" name="merge-requests-title" value="${issueTitle}" class="gl-form-input gl-w-full" placeholder="${issueTitle}">
-            <span class="gl-field-error hidden" id="field-error-mr">This field is required.</span>
+            <span class="form-text gl-font-sm gl-field-error hidden" id="field-error-mr">This field is required.</span>
         </div>
 
         <div class="form-group">
             <label for="branches-title">Branches name</label>
             <input type="text" id="branches-name" name="branches-title" value="${branchesName}" class="gl-form-input gl-w-full" placeholder="${branchesName}">
-            <span class="gl-field-error hidden" id="field-error-br">This field is required.</span>
-            <span id="branch-availability" class="js-branch-message form-text gl-font-sm hidden"></span>
+            <span class="form-text gl-font-sm gl-field-error hidden" id="field-error-br">This field is required.</span>
+            <span id="branch-availability" class="form-text gl-font-sm hidden"></span>
         </div>
 
         <div class="form-group">
@@ -349,11 +356,11 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     </div>
     `;
 
-    window.getProjectsWhereBranchNameUnavailable = async (projects, branch) => {
+    const getProjectsWhereBranchNameUnavailable = async (projects, branch) => {
         let projectsWithBranchesUnavailable = [];
         for (const project of projects) {
             try {
-                if (!await window.checkBranchAvailability(project.web_url.match(projectPattern)[1], branch)) {
+                if (!await checkBranchAvailability(project.web_url.match(projectPattern)[1], branch)) {
                     projectsWithBranchesUnavailable.push(project);
                 }
             } catch (error) {
@@ -364,14 +371,14 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return projectsWithBranchesUnavailable;
     }
 
-    window.getSelectedProjects = () => {
+    const getSelectedProjects = () => {
         let checkboxes = document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]:checked');
         if (!checkboxes || !checkboxes.length) return {};
         checkboxes = Array.from(checkboxes).map(checkbox => checkbox.value);
         return apiLoadedProjects.filter(project => checkboxes.includes(project.web_url));
     }
 
-    window.validateBrMrForm = async (projects) => {
+    const validateBrMrForm = async () => {
         const button = document.getElementById('create-branches');
         button.disabled = true;
 
@@ -383,7 +390,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         const fieldErrorMr = document.getElementById('field-error-mr');
         const branchAvailability = document.getElementById('branch-availability');
 
-        const selectedProjects = window.getSelectedProjects();
+        const selectedProjects = getSelectedProjects();
         if (!selectedProjects.length) {
             button.disabled = true;
             return false;
@@ -398,7 +405,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             isValid = false;
         } else {
             fieldErrorBr.classList.add('hidden');
-            const projectsWithBranchesUnavailable = await window.getProjectsWhereBranchNameUnavailable(selectedProjects, branchesName);
+            const projectsWithBranchesUnavailable = await getProjectsWhereBranchNameUnavailable(selectedProjects, branchesName);
 
             // Get a string of all the projects that have the branch already taken separated by a comma
             let projectsWithBranch = projectsWithBranchesUnavailable.map(project => `\"${project.name}\"`).join(', ');
@@ -438,23 +445,52 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     const branchNameInput = document.getElementById('branches-name');
     const mergeRequestInput = document.getElementById('merge-requests-title');
+    let validateBrMrFormTimeout = undefined;
 
-    branchNameInput.addEventListener('input', () => window.validateBrMrForm(apiLoadedProjects));
-    mergeRequestInput.addEventListener('input', () => window.validateBrMrForm(apiLoadedProjects));
-    document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', () => window.validateBrMrForm(apiLoadedProjects)));
+    const widget = document.getElementById("custom-merge-requests");
+    const widgetBody = document.getElementById("custom-merge-requests-widget-body");
+    let widgetContent = widgetBody.children;
+
+    document.getElementById("toggle-custom-merge-requests-button").addEventListener('click', () => {
+        if (widget.classList.contains("is-collapsed") || widgetBody.classList.contains("hidden")) {
+            for (const child of widgetContent) {
+                widgetBody.appendChild(child);
+            }
+            widget.classList.remove("is-collapsed");
+            widgetBody.classList.remove("hidden");
+            return
+        }
+
+        widgetContent = widgetBody.children
+        widgetBody.innerHtml = ''
+        widget.classList.add("is-collapsed")
+        widgetBody.classList.add("hidden")
+    })
+
+    const validateOnInput = () => {
+        const button = document.getElementById('create-branches');
+        button.disabled = true;
+        clearTimeout(validateBrMrFormTimeout);
+        validateBrMrFormTimeout = setTimeout(validateBrMrForm, 1000);
+    }
+
+    // When the input is changed (at least 0.2s after the last input)
+    branchNameInput.addEventListener('input', validateOnInput);
+    mergeRequestInput.addEventListener('input', validateOnInput);
+    document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', () => validateBrMrForm(apiLoadedProjects)));
 
     // Create an event listener for the button
     const createBranchesButton = document.getElementById('create-branches');
     createBranchesButton.addEventListener('click', async () => {
-        const selectedProjects = window.getSelectedProjects();
+        const selectedProjects = getSelectedProjects();
         const branchName = branchNameInput.value;
         const mergeRequestTitle = mergeRequestInput.value;
 
-        if (!await window.validateBrMrForm(apiLoadedProjects)) return;
+        if (!await validateBrMrForm()) return;
 
         let issue = undefined;
         try {
-            issue = await window.getIssue(projectUriMatch[1], issueId);
+            issue = await getIssue(projectUriMatch[1], issueId);
         } catch (error) {
             console.error(`Error while fetching the issue ${issueId}`);
             return;
@@ -468,36 +504,43 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             const sourceBranch = project.default_branch;
             const remove_source_branch = project.remove_source_branch ?? projectConfig.remove_source_branch ?? false;
             const squash = project.squash ?? projectConfig.squash ?? false;
+            const include_issue_description = project.include_issue_description ?? projectConfig.include_issue_description ?? false;
 
-            console.log({
-                "projectUri": projectUri,
-                "branchName": branchName,
-                "sourceBranch": sourceBranch,
-                "mergeRequestTitle": mergeRequestTitle,
-                "assignee_ids": assignee_ids,
-                "remove_source_branch": remove_source_branch,
-                "squash": squash,
-            })
-            // try {
-            //     const branch = await window.createBranch(projectUri, branchName, sourceBranch);
-            //     if (!branch) throw new Error();
+            let mergeRequestDescription = `Related to ${window.location.href}`;
+            if (include_issue_description && description.trim() !== '') {
+                mergeRequestDescription += `\n\n${description}`
+            }
 
-            // } catch (error) {
-            //     console.error(`Error while creating the branch on ${project}`);
-            //     continue;
-            // }
+            // console.log({
+            //     "projectUri": projectUri,
+            //     "branchName": branchName,
+            //     "sourceBranch": sourceBranch,
+            //     "mergeRequestTitle": mergeRequestTitle,
+            //     "assignee_ids": assignee_ids,
+            //     "remove_source_branch": remove_source_branch,
+            //     "squash": squash,
+            //     "description": mergeRequestDescription,
+            // })
 
-            // const mergeRequestDescription = `Related to ${window.location.href}\n\n${description}`;
-            // try {
-            //     const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
-            //     if (!mergeRequest) throw new Error();
+            try {
+                const branch = await createBranch(projectUri, branchName, sourceBranch);
+                if (!branch) throw new Error();
 
-            //     // Open the merge request page in a new tab
-            //     window.open(mergeRequest.web_url, '_blank');
-            // } catch (error) {
-            //     console.error(`Error while creating the merge request on ${project}`);
-            //     continue;
-            // }
+            } catch (error) {
+                console.error(`Error while creating the branch on ${project}`);
+                continue;
+            }
+
+            try {
+                const mergeRequest = await createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
+                if (!mergeRequest) throw new Error();
+
+                // Open the merge request page in a new tab
+                window.open(mergeRequest.web_url, '_blank');
+            } catch (error) {
+                console.error(`Error while creating the merge request on ${project}`);
+                continue;
+            }
         }
     });
 
