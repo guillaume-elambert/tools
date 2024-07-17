@@ -66,43 +66,38 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     window.checkBranchAvailability = async (project, branch) => {
         // Check if the project has a branch with the same name
         project = encodeURIComponent(project);
-        branch = encodeURIComponent(branch);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/repository/branches?private_token=${privateToken}`)
         return (await response.json()).find(branch => branch.name === branch) ? true : false;
     }
 
     window.createBranch = async (project, branch, source) => {
         project = encodeURIComponent(project);
-        branch = encodeURIComponent(branch);
-        source = encodeURIComponent(source);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/repository/branches?private_token=${privateToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                branch,
-                ref: source,
+                "branch": branch,
+                "ref": source,
             }),
         });
 
         return await response.json();
     }
 
-    window.createMergeRequest = async (project, source, target, title) => {
+    window.createMergeRequest = async (project, source, target, title, assignee_ids = []) => {
         project = encodeURIComponent(project);
-        source = encodeURIComponent(source);
-        target = encodeURIComponent(target);
-        title = encodeURIComponent(title);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/merge_requests?private_token=${privateToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                source_branch: source,
-                target_branch: target,
-                title,
+                "source_branch": source,
+                "target_branch": target,
+                "title": title,
+                "assignee_ids": assignee_ids,
             }),
         });
 
