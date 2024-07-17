@@ -37,8 +37,15 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         console.error('Error while loading the configuration');
         return;
     }
-
-    const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(\/([^\/]+))?)\/([^\/]+)))(.*)/i;
+    // Regex that matches :
+    // Match 0: The full current URL
+    // Group 1: The project web_url
+    // Group 2: The full project path
+    // Group 3: The full group path
+    // Group 4: The main group name
+    // Group 5: The project name
+    // Group 6: The rest of the URL
+    const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
     const projectUriMatch = window.location.href.match(projectPattern);
 
     if (!projectUriMatch) {

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Run pipeline helper
-// @version      2024-06-27
+// @version      2024-07-17
 // @description  Simplify the creation of a new Gitlab pipeline
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/new
@@ -27,7 +27,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         }
     }, 100);
 }).then(async () => {
-    
+
     const pipelineVariables = window.loadConfigurations('PIPELINE_VARIABLES');
 
     const defaultVariables = pipelineVariables.DEFAULT;
@@ -37,7 +37,15 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
 
-    const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
+    // Regex that matches :
+    // Match 0: The full current URL
+    // Group 1: The project web_url
+    // Group 2: The full project path
+    // Group 3: The full group path
+    // Group 4: The main group name
+    // Group 5: The project name
+    // Group 6: The rest of the URL
+    const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
     const projectUriMatch = window.location.href.match(projectPattern);
 
     let projectVariables = perProjectVariables[projectUriMatch[1]] || undefined;
@@ -62,7 +70,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     // <button data-testid="run-pipeline-button" type="submit">
     const submitButtonSelector = "button[data-testid='run-pipeline-button'][type='submit']";
 
-    
+
     window.removeVariables = () => {
         let form = document.querySelector(variablesFormSelector);
         let rows = form.querySelectorAll(`${variableRowSelector}:has(${variableRemoveButtonSelector})`);
@@ -94,25 +102,25 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             if (!container) continue;
 
-            
-            
+
+
             let valueToSet = value;
-            
+
             if (typeof valueToSet === 'object') {
                 valueToSet = value.value;
                 window.updateVariableTitle(container.querySelector(variableRowKeySelector));
             }
-            
-            if(!key || !valueToSet) {
+
+            if (!key || !valueToSet) {
                 console.error(`Variable ${key} is empty. Skipping...`);
                 continue;
             }
-            
+
             let inputKey = container.querySelector("input");
             let inputValue = container.querySelector("textarea");
 
             ++iterated;
-            
+
             inputKey.value = key;
             inputValue.value = valueToSet;
 
@@ -122,8 +130,12 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                     console.error(`Error while waiting for next container after ${key}:`, error);
                 });
 
-            inputKey.dispatchEvent(new Event('change', { bubbles: true }));
-            inputValue.dispatchEvent(new Event('change', { bubbles: true }));
+            inputKey.dispatchEvent(new Event('change', {
+                bubbles: true
+            }));
+            inputValue.dispatchEvent(new Event('change', {
+                bubbles: true
+            }));
 
             if (!fieldset.querySelector(`div:nth-of-type(${iterated + 1})`)) {
                 await prom;
@@ -155,7 +167,7 @@ fillVariables({
     window.updateVariableTitle = (node) => {
         const container = node.closest('div');
         if (!container) return;
-        
+
         // Check if the key is within the project variables and has a description
         if (projectVariables && projectVariables[node.value]?.description) {
             container.title = projectVariables[node.value].description;
@@ -163,7 +175,7 @@ fillVariables({
             node.setAttribute('variable-description', projectVariables[node.value].description);
             return;
         }
-        
+
         // Check if the key is within the default variables and has a description
         if (defaultVariables[node.value]?.description) {
             // Set the title of the container
@@ -171,14 +183,14 @@ fillVariables({
             node.setAttribute('variable-description', defaultVariables[node.value].description);
             return;
         }
-        
+
         // Check if the key is within the global variables
-        if(variablesDefinition[node.value]) {
+        if (variablesDefinition[node.value]) {
             container.title = variablesDefinition[node.value];
             node.setAttribute('variable-description', variablesDefinition[node.value]);
             return;
         }
-        
+
         container.title = '';
     }
 
@@ -217,30 +229,31 @@ fillVariables({
     const variablesObserver = new MutationObserver((mutationsList, observer) => {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList') {
-                for (let node of mutation.addedNodes) {                    
+                for (let node of mutation.addedNodes) {
                     if (node.querySelector && (node = node.querySelector(variableRowKeySelector))) {
                         ['input', 'paste', 'change', 'keydown']
-                            .forEach(event => node.addEventListener(event, () => window.updateVariableTitle(node)));
+                        .forEach(event => node.addEventListener(event, () => window.updateVariableTitle(node)));
                     }
                 }
             }
         }
     });
-    variablesObserver.observe(document.body, { childList: true, subtree: true });
+    variablesObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 
 
     // Select the last branch you made a commit on
     window.getLastBranchForEmail = async (authorEmail, projectPath, gitlabApiUrl = 'https://gitlab.com/api/v4') => {
         // Get the 10 last commits you made
-        const commits = await fetch(`${gitlabApiUrl}/projects/${encodeURIComponent(projectPath)}/repository/commits?all=true&author=${encodeURIComponent(authorEmail)}&per_page=10`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${privateToken}`
-                }
+        const commits = await fetch(`${gitlabApiUrl}/projects/${encodeURIComponent(projectPath)}/repository/commits?all=true&author=${encodeURIComponent(authorEmail)}&per_page=10`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${privateToken}`
             }
-        ).then(response => response.json())
+        }).then(response => response.json())
 
         if (!commits || commits.length == 0 || !commits[Symbol.iterator]) {
             throw new Error('No commit found');
@@ -346,7 +359,9 @@ fillVariables({
                 }
             });
 
-            observer.observe(parent, { childList: true });
+            observer.observe(parent, {
+                childList: true
+            });
         });
     }
 
@@ -355,7 +370,7 @@ fillVariables({
         // Load form configuration from the local storage
         const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKeyLastestVariables));
         if (!formConfiguration) return;
-        if(!formConfiguration[projectPath]) return;
+        if (!formConfiguration[projectPath]) return;
         return formConfiguration[projectPath];
     }
 
@@ -388,18 +403,18 @@ fillVariables({
         btn.className = "btn js-no-auto-disable gl-mr-3 btn-md gl-button " + buttonClass;
         btn.style = "margin-top: 1em;"
         if (title) btn.title = title;
-        
+
         btn.onclick = callback;
         btn.appendChild(span);
         topFieldSet.appendChild(btn);
     }
-    
+
     let buttonsToAdd = [];
     let localStorageConfiguration = await window.loadLatestUsedConfiguration(projectUriMatch[1]) || undefined;
     let currentBtnCount = 0;
-    
 
-    if(localStorageConfiguration) {
+
+    if (localStorageConfiguration) {
         variablesToUse = localStorageConfiguration;
 
         buttonsToAdd.push({
@@ -445,10 +460,10 @@ fillVariables({
         useTag.setAttribute('href', iconUrl);
         return randomIcon;
     }
-    
+
     let clearIcon = window.getIcon('clear');
     clearIcon.className.baseVal = "gl-mr-0! gl-md-display-block gl-icon s16"
-    
+
     buttonsToAdd.push({
         innerHtml: clearIcon.outerHTML,
         callback: window.removeVariables,
@@ -456,7 +471,7 @@ fillVariables({
         title: "Clear the form"
     });
 
-    
+
     window.fillVariablesUsage();
     window.fillVariables(variablesToUse);
 
@@ -471,7 +486,9 @@ fillVariables({
             window.fillVariables(variablesToUse);
         }
     });
-    observer.observe(variablesForm, { childList: true });
+    observer.observe(variablesForm, {
+        childList: true
+    });
 
 
 
@@ -480,13 +497,16 @@ fillVariables({
             // Await form to emit a new Mutation event
             await new Promise(resolve => {
                 const observer = new MutationObserver(() => {
-                    if(!variablesForm.querySelector(fieldsetSelector)) return;
+                    if (!variablesForm.querySelector(fieldsetSelector)) return;
                     resolve();
                     observer.disconnect();
                 });
 
                 // Wait for the fieldset to be created
-                observer.observe(variablesForm, { childList: true, subtree: true });
+                observer.observe(variablesForm, {
+                    childList: true,
+                    subtree: true
+                });
             });
 
             window.fillVariables(variablesToUse);
@@ -497,7 +517,7 @@ fillVariables({
 
     // Before submitting the form, save the configuration to the local storage
     variablesForm.addEventListener('submit', e => {
-        if(!projectUriMatch || projectUriMatch.length < 2) return;
+        if (!projectUriMatch || projectUriMatch.length < 2) return;
         e.preventDefault();
         e.stopPropagation();
         const variables = window.getFilledVariables();

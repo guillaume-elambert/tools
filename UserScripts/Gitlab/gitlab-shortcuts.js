@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Custom Gitlab shortcuts
-// @version      2024-06-27
+// @version      2024-07-17
 // @description  Add shortcuts to Gitlab
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*
@@ -9,7 +9,15 @@
 // @grant        none
 // ==/UserScript==
 
-const projectPattern = /(https:\/\/gitlab.com\/(([^\/]+)\/([^\/]+)\/([^\/]+)))(.*)/i;
+// Regex that matches :
+// Match 0: The full current URL
+// Group 1: The project web_url
+// Group 2: The full project path
+// Group 3: The full group path
+// Group 4: The main group name
+// Group 5: The project name
+// Group 6: The rest of the URL
+const projectPattern = /(https:\/\/gitlab.com\/((([^\/]+)(?:\/[^\/]+)?)\/([^\/]+)))(\/.*)?/i;
 const timeoutLength = 1000;
 var shortcutsTimeout = undefined;
 
@@ -96,7 +104,7 @@ function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
         timeoutFunction();
         return;
     }
-    
+
     // Clear the timeout
     clearTimeout(shortcutsTimeout);
     const pressed_key = event.key.toLowerCase().replace('arrow', '')
@@ -154,7 +162,10 @@ function handleShortcuts(shortcuts) {
 
     for (const [keysToBePressedStr, callback] of Object.entries(shortcuts)) {
         let splittedKeys = keysToBePressedStr.toLowerCase().split('+');
-        prepared_shortcuts.push({"keysToBePressed": splittedKeys, "callback": callback});
+        prepared_shortcuts.push({
+            "keysToBePressed": splittedKeys,
+            "callback": callback
+        });
     }
 
     window.addEventListener('keydown', (event) => handleKeyPressed(event, prepared_shortcuts, pressed_keys, timeoutFunction));

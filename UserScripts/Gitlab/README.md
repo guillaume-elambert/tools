@@ -110,6 +110,17 @@ const GITLAB_SCRIPTS_CONFIG = {
 The keys correspond to the shortcut to be used. \
 The value is a function that will be called when the shortcut is pressed.
 
+The `projectMatch` object is the result of a regex that matches:
+```
+Match 0: The full current URL
+Group 1: The project web_url
+Group 2: The full project path
+Group 3: The full group path
+Group 4: The main group name
+Group 5: The project name
+Group 6: The rest of the URL
+```
+
 ```javascript
 const shortcuts = {
     // Go to run pipeline page
