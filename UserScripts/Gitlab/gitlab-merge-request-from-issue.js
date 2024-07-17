@@ -28,6 +28,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }, 100);
 }).then(async () => {
 
+
+    const GITLAB_DEVELOPER_ACCESS = 30;
+
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
     const scriptConfig = window.loadConfigurations('CUSTOM_MERGE_REQUESTS_FROM_ISSUE');
     if (!privateToken || !scriptConfig) {
@@ -50,24 +53,34 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return;
     }
 
-
-    window.getOrganizationRepositories = async (organization) => {
-        organization = encodeURIComponent(organization);
-        const response = await fetch(`https://gitlab.com/api/v4/groups/${organization}/projects?private_token=${privateToken}`);
+    window.getGroupProjects = async (group) => {
+        group = encodeURIComponent(group);
+        // Ensure it has the right of developer
+        const response = await fetch(`https://gitlab.com/api/v4/groups/${group}/projects?min_access_level=${GITLAB_DEVELOPER_ACCESS}&include_subgroups=true&with_merge_requests_enabled=true&archived=false&per_page=100&private_token=${privateToken}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
         return await response.json();
     }
 
-    window.getRepository = async (project) => {
+    window.getProject = async (project) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}?private_token=${privateToken}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
         return await response.json();
     }
 
-    window.checkBranchAvailability = async (project, branch) => {
+    window.checkBranchAvailability = async (project, branchName) => {
         // Check if the project has a branch with the same name
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/repository/branches?private_token=${privateToken}`)
-        return (await response.json()).find(branch => branch.name === branch) ? true : false;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
+        // Return false if the branch is found
+        return (await response.json()).find(branch => branch.name === branchName) === undefined;
     }
 
     window.createBranch = async (project, branch, source) => {
@@ -82,7 +95,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 "ref": source,
             }),
         });
-
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
         return await response.json();
     }
 
@@ -104,7 +119,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 "reviewer_ids": reviewer_ids,
             }),
         });
-
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
         return await response.json();
     }
 
@@ -112,28 +129,35 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         project = encodeURIComponent(project);
         issue = encodeURIComponent(issue);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/issues/${issue}?private_token=${privateToken}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        }
         return await response.json();
     }
 
-    async function computeProjectsCheckboxes() {
+    window.isValidProject = async (project) => {
+        if (!project.permissions) return false;
+
+        let hasDeveloperAccess = false;
+        for (const [_, permission] of Object.entries(project.permissions)) {
+            if (!permission) continue;
+            hasDeveloperAccess = (permission.access_level ?? 0) >= GITLAB_DEVELOPER_ACCESS;
+            if (hasDeveloperAccess) break;
+        }
+
+        return (project.archived && project.merge_requests_enabled && project.default_branch && project.web_url !== projectUriMatch[1] && hasDeveloperAccess)
+    }
+
+
+    async function computeProjectsCheckboxes(projects) {
 
         let checkboxes = '';
-        
+
         // If the projectConfig has no 
-        for (const [key, value] of Object.entries(projectConfig.projects)) {
-            let targetProjectUri = key;
-            let projectName = value.name;
-            let sourceBranch = value.source;
-
-            // Check if the value has a property 'name'
-            if (!projectName) {
-                projectName = targetProjectUri.match(projectPattern)[7];
-            }
-
-            // Check if the value has a property 'originBranch'
-            if (!sourceBranch) {
-                sourceBranch = (await window.getRepository(targetProjectUri.match(projectPattern)[2])).default_branch;
-            }
+        for (const project of projects) {
+            let targetProjectUri = project.web_url
+            let projectName = project.name;
+            let sourceBranch = project.default_branch;
 
             checkboxes += `
                 <div class="gl-form-checkbox">
@@ -167,14 +191,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         useTag.setAttribute('href', iconUrl);
         return randomIcon;
     }
-
-    // Add a style tag to the head
-    const style = document.createElement('style');
-    style.innerHTML = `
-    .gl-form-checkbox-text .gl-form-checkbox-description {
-        margin-left: 0.2rem;
-        font-style: italic;
-    }`;
 
 
     const chevronIcon = window.getIcon('chevron-lg-up');
@@ -223,42 +239,63 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         </div>
     </div>`;
     div.innerHTML = widget;
-    
+
     tasks.parentElement.insertBefore(div, tasks);
-    
+
     const checkboxesContainer = document.getElementById('custom-merge-requests-checkboxes-container');
+    let projectsApiLoaded = [];
 
     // If projectConfig.projects is not defined or empty
-    if ( ! projectConfig.projects || ! Object.keys(projectConfig.projects).length ) {
+    if (!projectConfig.projects || !Object.keys(projectConfig.projects).length) {
         // Get the organization
-        const organization = projectUriMatch[3];
-        const repositories = await window.getOrganizationRepositories(organization);
-        projectConfig.projects = {};
+        const organization = projectUriMatch[4];
+        let projects = undefined;
 
-        for (const repository of repositories) {
-            if (repository.archived) continue;
-            if ( repository.merge_requests_enabled === false ) continue;
-            if ( ! repository.default_branch ) continue;
-            if ( repository.web_url === projectUriMatch[1] ) continue;
-
-            projectConfig.projects[repository.web_url] = {
-                name: repository.name,
-                source: repository.default_branch,
-            }
+        try {
+            projects = await window.getGroupProjects(organization);
+        } catch (error) {
+            console.error(`Error while fetching the project for the organization ${organization}`);
+            return;
         }
 
-    }
-    const checkboxes = await computeProjectsCheckboxes();
+        projectsApiLoaded = projects;
 
-    
+    } else {
+        let projects = {
+            ...projectConfig.projects
+        };
+
+        // Remove the projects that do not exists or that the user does not have access or that are archived or that do not have merge requests enabled
+        for (const key in projects) {
+            try {
+                const project = await window.getProject(key.match(projectPattern)[2]);
+
+                if (!window.isValidProject(project)) {
+                    // Remove the project from the list
+                    delete projectConfig.projects[key];
+                    continue;
+                }
+                projectsApiLoaded.push(project);
+            } catch (error) {
+                console.error(`Error while fetching the project ${key.match(projectPattern)[2]}`);
+                // Remove the project from the list
+                delete projectConfig.projects[key];
+                continue;
+            }
+        }
+    }
+
+    const checkboxes = await computeProjectsCheckboxes(projectsApiLoaded);
+
+
     // Check that there is at least one checkbox
     if (!checkboxes) {
         console.error('No checkbox found');
-        checkboxesContainer.innerHTML = '<p class="gl-new-card-empty">No projects to create branches and merge requests.<br/>Check configuration and console.<br/>You might also need to reload the page.</p>';
+        checkboxesContainer.innerHTML = '<p class="gl-new-card-empty">No projects to create branches and merge requests.<br/>Check configuration and console.<br/>You may also need to reload the page.</p>';
         return;
     }
 
-    
+
     const issueId = window.location.href.match(/\/issues\/(\d+)/)[1];
 
     let issueTitle = document.querySelector('.title').innerText
@@ -282,7 +319,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         </div>
 
         <div class="form-group">
-            <button id="create-branches" class="btn btn-primary gl-mt-4" disabled>
+            <button id="create-branches" class="btn btn-primary" disabled>
                 <span class="gl-button-text">Create branch and merge request on selected projects</span>
             </button>
         </div>
@@ -292,7 +329,12 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     window.checkAllBranchAvailabilityForProjects = async (projects, branch) => {
         let availability = {};
         for (const project of projects) {
-            availability[project] = await window.checkBranchAvailability(project.match(projectPattern)[2], branch);
+            try {
+                availability[project] = await window.checkBranchAvailability(project.match(projectPattern)[2], branch);
+            } catch (error) {
+                console.error(`Error while checking the branch availability on ${project}`);
+                availability[project] = false;
+            }
         }
         return availability;
     }
@@ -314,16 +356,22 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         const fieldErrorMr = document.getElementById('field-error-mr');
         const branchAvailability = document.getElementById('branch-availability');
 
+        const selectedProjects = window.getSelectedProjects();
+        if (!selectedProjects.length) {
+            button.disabled = true;
+            return false;
+        }
+
         let isValid = true;
         if (!branchesName || branchesName.trim() === '') {
             fieldErrorBr.classList.remove('hidden');
             isValid = false;
         } else {
             fieldErrorBr.classList.add('hidden');
-            const branchesAvailability = await window.checkAllBranchAvailabilityForProjects(window.getSelectedProjects(), branchesName);
+            const branchesAvailability = await window.checkAllBranchAvailabilityForProjects(selectedProjects, branchesName);
 
             // Get a string of all the projects that have the branch already taken separated by a comma
-            let projectsWithBranch = Object.keys(branchesAvailability).filter(project => branchesAvailability[project]).map(project => `\"${projectConfig.projects[project].name}\"`).join(', ');
+            let projectsWithBranch = Object.keys(branchesAvailability).filter(project => !branchesAvailability[project]).map(project => `\"${projectConfig.projects[project].name}\"`).join(', ');
             if (projectsWithBranch) {
                 branchAvailability.classList.remove('hidden');
                 branchAvailability.classList.remove('gl-text-green-500');
@@ -356,11 +404,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         return isValid;
     }
-    
+
     const branchNameInput = document.getElementById('branches-name');
     const mergeRequestInput = document.getElementById('merge-requests-title');
     window.projectConfig = projectConfig;
-    console.log(projectUriMatch[2], issueId);
 
     branchNameInput.addEventListener('input', window.validateBrMrForm);
     mergeRequestInput.addEventListener('input', window.validateBrMrForm);
@@ -375,7 +422,14 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         if (!await window.validateBrMrForm()) return;
 
-        let issue = await window.getIssue(projectUriMatch[2], issueId);
+        let issue = undefined;
+        try {
+            issue = await window.getIssue(projectUriMatch[2], issueId);
+        } catch (error) {
+            console.error(`Error while fetching the issue ${issueId}`);
+            return;
+        }
+
         let assignee_ids = issue.assignees.map(assignee => assignee.id);
         let description = issue.description ?? '';
 
@@ -385,20 +439,26 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             const remove_source_branch = projectConfig.projects[project].remove_source_branch ?? projectConfig.remove_source_branch ?? false;
             const squash = projectConfig.projects[project].squash ?? projectConfig.squash ?? false;
 
-            const branch = await window.createBranch(projectUri, branchName, sourceBranch).catch(() => undefined);
-            if (!branch) {
+            try {
+                const branch = await window.createBranch(projectUri, branchName, sourceBranch);
+                if (!branch) throw new Error();
+
+            } catch (error) {
                 console.error(`Error while creating the branch on ${project}`);
                 continue;
             }
+
             const mergeRequestDescription = `Related to ${projectUriMatch[0]}\n\n${description}`;
-            const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
-            if (!mergeRequest) {
+            try {
+                const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
+                if (!mergeRequest) throw new Error();
+
+                // Open the merge request page in a new tab
+                window.open(mergeRequest.web_url, '_blank');
+            } catch (error) {
                 console.error(`Error while creating the merge request on ${project}`);
                 continue;
             }
-
-            // Open the merge request page in a new tab
-            window.open(mergeRequest.web_url, '_blank');
         }
     });
 
