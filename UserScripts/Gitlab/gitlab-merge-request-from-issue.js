@@ -86,7 +86,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return await response.json();
     }
 
-    window.createMergeRequest = async (project, source, target, title, assignee_ids = [], remove_source_branch = false, squash = false) => {
+    window.createMergeRequest = async (project, source, target, title, description = '', assignee_ids = [], remove_source_branch = false, squash = false) => {
         project = encodeURIComponent(project);
         const response = await fetch(`https://gitlab.com/api/v4/projects/${project}/merge_requests?private_token=${privateToken}`, {
             method: 'POST',
@@ -97,6 +97,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 "source_branch": source,
                 "target_branch": target,
                 "title": title,
+                "description": description,
                 "assignee_ids": assignee_ids,
                 "remove_source_branch": remove_source_branch,
                 "squash": squash,
@@ -376,6 +377,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         let issue = await window.getIssue(projectUriMatch[2], issueId);
         let assignee_ids = issue.assignees.map(assignee => assignee.id);
+        let description = issue.description ?? '';
 
         for (const project of selectedProjects) {
             const projectUri = project.match(projectPattern)[2];
@@ -383,11 +385,20 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             const remove_source_branch = projectConfig.projects[project].remove_source_branch ?? projectConfig.remove_source_branch ?? false;
             const squash = projectConfig.projects[project].squash ?? projectConfig.squash ?? false;
 
-            await window.createBranch(projectUri, branchName, sourceBranch);
-            await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, assignee_ids, remove_source_branch, squash);
+            const branch = await window.createBranch(projectUri, branchName, sourceBranch).catch(() => undefined);
+            if (!branch) {
+                console.error(`Error while creating the branch on ${project}`);
+                continue;
+            }
+            const mergeRequestDescription = `Related to ${projectUriMatch[0]}\n\n${description}`;
+            const mergeRequest = await window.createMergeRequest(projectUri, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
+            if (!mergeRequest) {
+                console.error(`Error while creating the merge request on ${project}`);
+                continue;
+            }
 
             // Open the merge request page in a new tab
-
+            window.open(mergeRequest.web_url, '_blank');
         }
     });
 
