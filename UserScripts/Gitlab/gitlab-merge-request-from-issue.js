@@ -275,6 +275,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                     delete projectConfig.projects[key];
                     continue;
                 }
+                if (!projects[key].name) projects[key].name = project.name;
                 projectsApiLoaded.push(project);
             } catch (error) {
                 console.error(`Error while fetching the project ${key.match(projectPattern)[2]}`);
@@ -285,6 +286,16 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         }
     }
 
+    // Check if the projectConfig has the exlude_projects key
+    if (projectConfig.exclude_projects) {
+        for (const project of projectConfig.exclude_projects) {
+            // Find in apiLoaded the project that match the project
+            const projectIndex = projectsApiLoaded.findIndex(p => p.web_url === project);
+            if (projectIndex === -1) continue;
+            // Remove the project from the list
+            projectsApiLoaded.splice(projectIndex, 1);
+        }
+    }
     const checkboxes = await computeProjectsCheckboxes(projectsApiLoaded);
 
 
@@ -326,6 +337,20 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     </div>
     `;
 
+    // On each .gl-form-checkbox copy the value to the clipboard
+    document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.style.position = 'absolute';
+            input.style.left = '-9999px';
+            input.value = checkbox.value;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+        });
+    });
+
     window.checkAllBranchAvailabilityForProjects = async (projects, branch) => {
         let availability = {};
         for (const project of projects) {
@@ -344,7 +369,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return Array.from(checkboxes).map(checkbox => checkbox.value);
     }
 
-    window.validateBrMrForm = async () => {
+    window.validateBrMrForm = async (projects) => {
         const button = document.getElementById('create-branches');
         button.disabled = true;
 
@@ -371,7 +396,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             const branchesAvailability = await window.checkAllBranchAvailabilityForProjects(selectedProjects, branchesName);
 
             // Get a string of all the projects that have the branch already taken separated by a comma
-            let projectsWithBranch = Object.keys(branchesAvailability).filter(project => !branchesAvailability[project]).map(project => `\"${projectConfig.projects[project].name}\"`).join(', ');
+            let projectsWithBranch = Object.keys(branchesAvailability).filter(project => !branchesAvailability[project]).map(project => {
+                let projectName = projects.find(p => p.web_url === project).name;
+                return `\"${projectName}\"`
+            }).join(', ');
             if (projectsWithBranch) {
                 branchAvailability.classList.remove('hidden');
                 branchAvailability.classList.remove('gl-text-green-500');
@@ -409,9 +437,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const mergeRequestInput = document.getElementById('merge-requests-title');
     window.projectConfig = projectConfig;
 
-    branchNameInput.addEventListener('input', window.validateBrMrForm);
-    mergeRequestInput.addEventListener('input', window.validateBrMrForm);
-    document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', window.validateBrMrForm));
+    branchNameInput.addEventListener('input', () => window.validateBrMrForm(projectsApiLoaded));
+    mergeRequestInput.addEventListener('input', () => window.validateBrMrForm(projectsApiLoaded));
+    document.querySelectorAll('#custom-merge-requests-checkboxes-container input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', () => window.validateBrMrForm(projectsApiLoaded)));
 
     // Create an event listener for the button
     const createBranchesButton = document.getElementById('create-branches');
@@ -420,7 +448,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         const branchName = branchNameInput.value;
         const mergeRequestTitle = mergeRequestInput.value;
 
-        if (!await window.validateBrMrForm()) return;
+        if (!await window.validateBrMrForm(projectsApiLoaded)) return;
 
         let issue = undefined;
         try {
