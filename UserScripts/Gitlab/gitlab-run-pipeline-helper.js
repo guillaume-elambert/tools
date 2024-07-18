@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Run pipeline helper
-// @version      2024-07-17
-// @description  Simplify the creation of a new Gitlab pipeline
+// @version      2024-07-18
+// @description  Simplify the process of running a pipeline by adding buttons to fill the variables with the last used, project or default variables.
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/new
-// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-new-pipeline-helper.js
-// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-new-pipeline-helper.js
+// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-run-pipeline-helper.js
+// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-run-pipeline-helper.js
 // @grant        none
 // ==/UserScript==
 
@@ -493,7 +493,7 @@ fillVariables({
 
 
     if (projectUriMatch && projectUriMatch.length >= 2) {
-        await window.selectLastBranch(authorEmails, projectUriMatch[2], async () => {
+        await window.selectLastBranch(authorEmails, projectUriMatch[1], async () => {
             // Await form to emit a new Mutation event
             await new Promise(resolve => {
                 const observer = new MutationObserver(() => {

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Print pipeline variables
-// @version      2024-07-17
+// @version      2024-07-18
 // @description  Display pipeline variables
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/*
@@ -164,9 +164,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     // Group 5: The project name
     // Group 6: The pipeline ID
     const projectPattern = /(https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+)))\/-\/pipelines\/(\d+)(\/.*)?/i;
-    let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
-    if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
-    const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
+    const projectUriMatch = window.location.href.match(projectPattern);
 
     if (projectUriMatch && projectUriMatch.length >= 7) {
         // Wait until body has class 'page-initialised'

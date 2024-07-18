@@ -167,11 +167,12 @@ const GITLAB_SCRIPTS_CONFIG = {
     CREATE_MERGE_REQUESTS_ON_OTHER_PROJECTS_FROM_ISSUE: {
         // The keys are the project where the plugin will be active
         "https://gitlab.com/group/projecton": {
-            "branch-name-prefix": "OPS <ISSUE_ID> - ",
-            "merge-request-title-prefix": "OPS <ISSUE_ID> - ",
+            "branch_name_prefix": "OPS <ISSUE_ID> - ",
+            "merge_request_title_prefix": "OPS <ISSUE_ID> - ",
             "remove_source_branch": true,
             "squash": false,
             "include_issue_description": false,
+            "open_after_creation": true,
             "excluded_projects": [
                 "https://gitlab.com/toexclude/project1",
                 "https://gitlab.com/anothergroup/project2",
@@ -187,10 +188,13 @@ const GITLAB_SCRIPTS_CONFIG = {
                     "default_branch": "dev",
                     "remove_source_branch": false, // override the global value
                     "squash": true, // override the global value
+                    // Global values will be used for 'include_issue_description' and 'open_after_creation'
                 },
                 "https://gitlab.com/anothergroup/subgroup/project2": {
                     "name": "C30",
-                    "default_branch": "dev"
+                    "default_branch": "dev",
+                    "include_issue_description": true, // override the global value
+                    "open_after_creation": false, // override the global value
                     // Global values will be used for 'remove_source_branch' and 'squash'
                 },
             }
