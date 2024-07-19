@@ -43,7 +43,7 @@ plugins:
     background: true
     args:
       - -c 
-      - kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true | code -
+      - kubectl logs --follow=false --timestamps $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true | code -
 
   container-logs-vscode:
     shortCut: Shift-L
@@ -55,4 +55,4 @@ plugins:
     background: true
     args:
       - -c
-      - kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT | code -
+      - kubectl logs --follow=false --timestamps $POD -c $NAME -n $NAMESPACE --context $CONTEXT | code -
