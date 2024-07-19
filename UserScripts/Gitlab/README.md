@@ -36,8 +36,6 @@ Refer to the [Gitlab documentation][gitlab-token] to create a private token.
 const GITLAB_SCRIPTS_CONFIG = {
     // ...
     API_PRIVATE_TOKEN: "", // replace with your private token
-    AUTHOR_EMAILS: ["", "", ""], // replace with your email(s)
-    // ...
 };
 ```
 

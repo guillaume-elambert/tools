@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Run pipeline helper
-// @version      2024-07-18
+// @version      2024-07-19
 // @description  Simplify the process of running a pipeline by adding buttons to fill the variables with the last used, project or default variables.
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/new
@@ -35,7 +35,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     let perProjectVariables = pipelineVariables.PER_PROJECT;
 
     const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
-    const authorEmails = window.loadConfigurations('AUTHOR_EMAILS');
 
     // Regex that matches :
     // Match 1: The project web_url
@@ -69,6 +68,32 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     const variableRemoveButtonSelector = "button[data-testid='remove-ci-variable-row']"
     // <button data-testid="run-pipeline-button" type="submit">
     const submitButtonSelector = "button[data-testid='run-pipeline-button'][type='submit']";
+
+
+    window.getEmails = async (gitlabApiUrl = 'https://gitlab.com/api/v4') => {
+        const response = await fetch(`${gitlabApiUrl}/user/emails?private_token=${privateToken}`)
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+        return await response.json();
+    }
+
+    let authorEmails = undefined;
+
+    try {
+        const emails = await window.getEmails();
+        console.log('Emails:', emails);
+        authorEmails = [];
+        if (!emails || emails.length === 0) {
+            throw new Error('No email found');
+        }
+        for (const email of emails) {
+            authorEmails.push(email.email);
+        }
+    } catch (error) {
+        console.error('Error while loading the author emails:', error);
+        return;
+    }
+    if (!authorEmails || authorEmails.length === 0) return;
+    window.authorEmails = authorEmails;
 
 
     window.removeVariables = () => {
@@ -517,11 +542,11 @@ fillVariables({
 
     // Before submitting the form, save the configuration to the local storage
     variablesForm.addEventListener('submit', e => {
-        if (!projectUriMatch || projectUriMatch.length < 2) return;
+        if (!projectUriMatch || !projectUriMatch.length) return;
         e.preventDefault();
         e.stopPropagation();
         const variables = window.getFilledVariables();
-        window.updateLatestVariables(projectUriMatch[1], variables);
+        window.updateLatestVariables(projectUriMatch[0], variables);
     });
 }).catch(() => {
     return;
