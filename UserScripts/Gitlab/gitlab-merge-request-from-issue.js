@@ -503,7 +503,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
 
     const issueId = window.location.href.match(/\/issues\/(\d+)/)[1];
-    window.projectConfig = projectConfig;
+
     let issueTitle = document.querySelector('.title').innerText
     let branchesName = `${projectConfig.branch_name_prefix ?? DEFAULT_CONFIG.branch_name_prefix}${issueTitle}`;
     branchesName = replaceSpecialCharsBranchName(branchesName.replace('<ISSUE_ID>', issueId)).toLowerCase();
@@ -652,19 +652,27 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         const hrefErrorIcon = errorIcon.querySelector('use').getAttribute('href');
 
 
-        const editAlertForError = (alert, project, objectCreatingName, objectCreatingType = "merge request") => {
-            alert.querySelector('.gl-alert').classList.add('gl-alert-error');
+        const editAlertForError = (alert, project, gitlabObjectName, gitlabObjectType = "merge request") => {
+            const container = alert.querySelector('.gl-alert');
+            container.classList.remove('gl-alert-success');
+            container.classList.add('gl-alert-danger');
             alert.querySelector('svg.gl-alert-icon use').setAttribute('href', hrefErrorIcon);
-            alert.querySelector('.gl-alert-body').innerText = `Error while creating the ${objectCreatingType.trim()} "${objectCreatingName}" on ${project.name}`;
+            alert.querySelector('.gl-alert-body').innerHTML = `Error while creating the ${gitlabObjectType.trim()} "<span class="gl-italic">${gitlabObjectName}</span>" on ${project.name}`;
+            container.classList.remove('hidden');
         }
 
-        const editAlertForSuccess = (alert, project, mergeRequestName) => {
-            alert.querySelector('.gl-alert').classList.add('gl-alert-success');
+        const editAlertForSuccess = (alert, project, mergeRequest) => {
+            const container = alert.querySelector('.gl-alert');
+            container.classList.remove('gl-alert-danger');
+            container.classList.add('gl-alert-success');
             alert.querySelector('svg.gl-alert-icon use').setAttribute('href', hrefCheckCircleIcon);
             alert.querySelector('.gl-alert-body').innerHTML = `
-            Merge request "${mergeRequestName}" created on <a href="${mergeRequest.web_url}" class="gl-link">${project.name}</a>
+            Merge request "<span class="gl-italic">${mergeRequest.title}</span>" created on <a href="${mergeRequest.web_url}" class="gl-link">${project.name}</a>
             `;
+            container.classList.remove('hidden');
         }
+
+        resultAlertContainer.innerHTML = '';
 
         for (const project of selectedProjects) {
             const projectPath = project.web_url.match(projectPattern)[1];
@@ -691,7 +699,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             const alert = document.createElement('div');
             alert.innerHTML = `
-                <div class="gl-m-4 gl-p-3! gl-pl-9! gl-border-bottom-0 gl-alert">
+                <div class="gl-m-4 gl-p-3! gl-pl-9! gl-border-bottom-0 gl-alert hidden">
                     <div class="gl-top-3 gl-alert-icon-container">
                         <svg data-testid="check-circle-icon" role="img" aria-hidden="true"
                             class="gl-alert-icon gl-icon s16 gl-fill-current">
@@ -702,7 +710,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                     <div role="alert" aria-live="polite" class="gl-alert-content">
                         <div class="gl-alert-body"></div>
                     </div>
-                    <button aria-label="Dismiss" type="button"
+                    <button aria-label="Dismiss" type="button" style="top: .4rem;"
                         class="btn gl-dismiss-btn btn-default btn-sm gl-button btn-default-tertiary btn-icon">
                         <svg data-testid="close-icon" role="img" aria-hidden="true" class="gl-button-icon gl-icon s16 gl-fill-current">
                             <use href="${hrefCloseIcon}"></use>
@@ -711,28 +719,30 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 </div>
             `;
             alert.querySelector('.gl-dismiss-btn').addEventListener('click', () => alert.remove());
-
             resultAlertContainer.appendChild(alert);
 
 
             try {
                 const branch = await createBranch(projectPath, branchName, sourceBranch);
-                if (!branch) throw new Error();
+                // Or the branch id is not defined
+                if (!branch || branch.id === 1) {
+                    throw new Error();
+                }
 
             } catch (error) {
                 editAlertForError(alert, project, branchName, "branch");
-                console.error(`Error while creating the branch on ${project}`);
+                console.error(`Error while creating the branch on`, project);
                 continue;
             }
 
             try {
                 const mergeRequest = await createMergeRequest(projectPath, branchName, sourceBranch, mergeRequestTitle, mergeRequestDescription, assignee_ids, remove_source_branch, squash).catch(() => undefined);
                 if (!mergeRequest) throw new Error();
-                editAlertForSuccess(alert, project, mergeRequestTitle);
+                editAlertForSuccess(alert, project, mergeRequest);
 
             } catch (error) {
-                editAlertForError(alert, project, mergeRequestTitle);
-                console.error(`Error while creating the merge request on ${project}`);
+                editAlertForError(alert, project, mergeRequestTitle);;
+                console.error(`Error while creating the merge request on`, project);
                 continue;
             }
         }
