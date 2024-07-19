@@ -38,7 +38,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }
 
     const DEFAULT_CONFIG = {
-        branch_name_prefix: "issue-<ISSUE_ID>",
+        branch_name_prefix: "issue-<ISSUE_ID>-",
         merge_request_title_prefix: "Issue <ISSUE_ID>: ",
         squash: false,
         remove_source_branch: false,
@@ -494,12 +494,19 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         return;
     }
 
+    const replaceSpecialCharsBranchName = (branchName) =>
+        branchName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-');
+
 
     const issueId = window.location.href.match(/\/issues\/(\d+)/)[1];
-
+    window.projectConfig = projectConfig;
     let issueTitle = document.querySelector('.title').innerText
-    let branchesName = `${projectConfig.branch_name_prefix ?? DEFAULT_CONFIG.branch_name_prefix}}${issueTitle}`;
-    branchesName = branchesName.replace('<ISSUE_ID>', issueId).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
+    let branchesName = `${projectConfig.branch_name_prefix ?? DEFAULT_CONFIG.branch_name_prefix}${issueTitle}`;
+    branchesName = replaceSpecialCharsBranchName(branchesName.replace('<ISSUE_ID>', issueId)).toLowerCase();
     issueTitle = `${projectConfig.merge_request_title_prefix ?? DEFAULT_CONFIG.merge_request_title_prefix}${issueTitle}`.replace('<ISSUE_ID>', issueId);
 
     checkboxesContainer.innerHTML = '';
