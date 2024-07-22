@@ -16,14 +16,16 @@
 // Group 3: The main group name
 // Group 4: The project name
 const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
+let projectUriMatch = undefined;
 let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
-if (!dataProjectFullPath) {
-    console.error('Error while fetching the project full path. Maybe the user is not on a project page.');
-    return;
+
+if (dataProjectFullPath) {
+    if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
+    projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
+} else {
+    console.log('The user is not currently on a project page.');
 }
 
-if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
-const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 
 const timeoutLength = 1000;
 var shortcutsTimeout = undefined;
