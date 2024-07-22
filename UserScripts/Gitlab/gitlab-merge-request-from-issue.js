@@ -195,7 +195,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         )
     }
 
-
     const computeProjectsCheckboxes = (projects) => {
 
         let checkboxes = [];
@@ -248,7 +247,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                     projectsWithBranchesUnavailable.push(project);
                 }
             } catch (error) {
-                console.error(`Error while checking the branch availability on ${project}`);
+                console.error(`Error while checking the branch availability on ${project}`, error);
                 projectsWithBranchesUnavailable.push(project);
             }
         }
@@ -387,17 +386,17 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     let apiLoadedProjects = [];
     let areProjectsLoadedFromGroup = false;
 
+    const group = projectUriMatch[3];
+
     // If projectConfig.projects is not defined or empty
     if (!projectConfig.projects || !Object.keys(projectConfig.projects).length) {
-        // Get the group
-        const group = projectUriMatch[3];
         let projects = undefined;
         areProjectsLoadedFromGroup = true;
 
         try {
             projects = await getGroupProjects(group);
         } catch (error) {
-            console.error(`Error while fetching the projects for the group ${group}`);
+            console.error(`Error while fetching the projects for the group ${group}`, error);
             return;
         }
 
@@ -418,7 +417,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
                 apiLoadedProjects.push(project);
             } catch (error) {
-                console.error(`Error while checking the project ${project}`);
+                console.error(`Error while checking the project ${project}`, error);
                 continue;
             }
         }
@@ -447,7 +446,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
                 apiLoadedProjects.push(project);
             } catch (error) {
-                console.error(`Error while fetching the project ${probjectWebUrl}`);
+                console.error(`Error while fetching the project ${probjectWebUrl}`, error);
                 // Remove the project from the list
                 delete projectConfig.projects[probjectWebUrl];
                 continue;
@@ -633,6 +632,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         if (!await validateBrMrForm()) return;
         if (!selectedProjects.length) return;
+        createBranchesButton.disabled = true;
 
         const includeDescriptionCheckbox = document.getElementById('include-description-in-merge-requests');
         projectConfig.include_issue_description = includeDescriptionCheckbox.checked;
@@ -641,7 +641,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         try {
             issue = await getIssue(projectUriMatch[1], issueId);
         } catch (error) {
-            console.error(`Error while fetching the issue ${issueId}`);
+            console.error(`Error while fetching the issue ${issueId}`, error);
             return;
         }
 
@@ -731,7 +731,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             } catch (error) {
                 editAlertForError(alert, project, branchName, "branch");
-                console.error(`Error while creating the branch on`, project);
+                console.error(`Error while creating the branch on`, project, error);
                 continue;
             }
 
@@ -742,7 +742,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             } catch (error) {
                 editAlertForError(alert, project, mergeRequestTitle);;
-                console.error(`Error while creating the merge request on`, project);
+                console.error(`Error while creating the merge request on`, project, error);
                 continue;
             }
         }
@@ -750,4 +750,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     });
 
 
+}).catch(() => {
+    return;
 });
