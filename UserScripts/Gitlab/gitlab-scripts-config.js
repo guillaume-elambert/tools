@@ -12,10 +12,6 @@
 
 const GITLAB_SCRIPTS_CONFIG = {
     API_PRIVATE_TOKEN: '', // replace with your private token
-    AUTHOR_EMAILS: [
-        '',
-        '',
-    ], // replace with your email(s)
     PIPELINE_VARIABLES: {
         DICTIONARY: {
             "variable1": "This is the gloable description of variable 1",
