@@ -17,6 +17,11 @@
 // Group 4: The project name
 const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
 let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+if (!dataProjectFullPath) {
+    console.error('Error while fetching the project full path. Maybe the user is not on a project page.');
+    return;
+}
+
 if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
 const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 

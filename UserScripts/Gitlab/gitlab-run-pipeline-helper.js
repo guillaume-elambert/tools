@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Run pipeline helper
-// @version      2024-07-19
+// @version      2024-07-22
 // @description  Simplify the process of running a pipeline by adding buttons to fill the variables with the last used, project or default variables.
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/pipelines/new
@@ -44,6 +44,11 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     // Group 4: The project name
     const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
     let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+    if (!dataProjectFullPath) {
+        console.error('Error while fetching the project full path. Maybe the user is not on a project page.');
+        return;
+    }
+
     if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
     const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 

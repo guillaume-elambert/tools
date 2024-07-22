@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Create merge request on other projects from issue
-// @version      2024-07-19
+// @version      2024-07-22
 // @description  Create a merge request on a related but different projects from an issue
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/issues/*
-// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-issue-merge-request.js
-// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-issue-merge-request.js
+// @downloadURL  https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-merge-request-from-issue.js
+// @updateURL    https://raw.githubusercontent.com/guillaume-elambert/tools/master/UserScripts/Gitlab/gitlab-merge-request-from-issue.js
 // @grant        none
 // ==/UserScript==
 
@@ -54,6 +54,11 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     // Group 4: The project name
     const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
     let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+    if (!dataProjectFullPath) {
+        console.error('Error while fetching the project full path. Maybe the user is not on a project page.');
+        return;
+    }
+
     if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
     const projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
 
