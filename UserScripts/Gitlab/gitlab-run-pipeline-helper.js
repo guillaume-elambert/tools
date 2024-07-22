@@ -55,7 +55,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         projectVariables = undefined;
     }
 
-    const localStorageKeyLastestVariables = `GITLAB_SCRIPTS_LASTEST_VARIABLES`;
+    const localStorageKeyLatestVariables = `GITLAB_SCRIPTS_LATEST_VARIABLES`;
 
     // UI constants
     const variablesFormSelector = "#content-body > form";
@@ -223,7 +223,7 @@ fillVariables({
         // If there is no variables, do nothing
         if (!variables || Object.keys(variables).length === 0) return;
 
-        let formConfiguration = JSON.parse(window.localStorage.getItem(localStorageKeyLastestVariables)) || {};
+        let formConfiguration = JSON.parse(window.localStorage.getItem(localStorageKeyLatestVariables)) || {};
         let currentProjectConfiguration = {};
         for (const [key, value] of Object.entries(variables)) {
             if (!value) continue;
@@ -233,7 +233,7 @@ fillVariables({
             currentProjectConfiguration[key] = value;
         }
         formConfiguration[projectPath] = currentProjectConfiguration;
-        window.localStorage.setItem(localStorageKeyLastestVariables, JSON.stringify(formConfiguration));
+        window.localStorage.setItem(localStorageKeyLatestVariables, JSON.stringify(formConfiguration));
         projectVariables = currentProjectConfiguration;
         perProjectVariables[projectPath] = currentProjectConfiguration;
     }
@@ -393,7 +393,7 @@ fillVariables({
 
     window.loadLatestUsedConfiguration = async (projectPath) => {
         // Load form configuration from the local storage
-        const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKeyLastestVariables));
+        const formConfiguration = JSON.parse(await window.localStorage.getItem(localStorageKeyLatestVariables));
         if (!formConfiguration) return;
         if (!formConfiguration[projectPath]) return;
         return formConfiguration[projectPath];
