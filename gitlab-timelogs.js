@@ -41,7 +41,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     let user = undefined;
 
     try {
-        user = getUser(gitlabApiUrl);
+        user = await getUser(gitlabApiUrl);
     } catch (error) {
         console.error('Error while fetching the user', error);
         return;
@@ -53,34 +53,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     const contentBodySelector = '#content-body > div';
     const formSelector = `${contentBodySelector} > form`;
-
-    let waitForElementResolve = undefined;
-    const waitForElement = new Promise((resolve) => {
-        waitForElementResolve = resolve;
-    });
-
-    const observer = new MutationObserver((mutationsList, observer) => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                if (mutation.target.classList.contains('page-initialised')) {
-                    // Wait 0.1s to make sure the page is fully loaded
-                    setTimeout(() => {
-                        waitForElementResolve();
-                    }, 100);
-                    observer.disconnect();
-                    return;
-                }
-            }
-        }
-    });
-    observer.observe(document.body, {
-        attributes: true
-    });
-
-    // Wait until the promise is resolved
-    await waitForElement;
-    // Await user to be fetched
-    user = await user;
 
     const form = document.querySelector(formSelector);
     if (!form) {
