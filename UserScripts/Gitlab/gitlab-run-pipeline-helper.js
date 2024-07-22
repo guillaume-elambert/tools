@@ -80,7 +80,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     try {
         const emails = await window.getEmails();
-        console.log('Emails:', emails);
         authorEmails = [];
         if (!emails || emails.length === 0) {
             throw new Error('No email found');

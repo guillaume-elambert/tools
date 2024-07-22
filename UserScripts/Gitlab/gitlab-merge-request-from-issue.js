@@ -686,17 +686,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
                 mergeRequestDescription += `\n\n${description}`
             }
 
-            console.log({
-                "projectUri": projectPath,
-                "branchName": branchName,
-                "sourceBranch": sourceBranch,
-                "mergeRequestTitle": mergeRequestTitle,
-                "assignee_ids": assignee_ids,
-                "remove_source_branch": remove_source_branch,
-                "squash": squash,
-                "description": mergeRequestDescription,
-            })
-
             const alert = document.createElement('div');
             alert.innerHTML = `
                 <div class="gl-m-4 gl-p-3! gl-pl-9! gl-border-bottom-0 gl-alert hidden">
