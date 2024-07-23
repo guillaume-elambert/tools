@@ -9,6 +9,8 @@
 // @grant        none
 // ==/UserScript==
 
+const CONFIGURATION_KEY = 'CUSTOM_SHORTCUTS';
+
 // Regex that matches :
 // Match 1: The project web_url
 // Group 1: The full project path
@@ -60,6 +62,16 @@ const shortcuts = {
     'Shift+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
     // Go to run project new merge request page
     'n+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
+    // Set an issue to review state
+    'u+r': {
+        needs_shared_configuration: true,
+        handler: (projectUriMatch) => review_issue_handler(projectUriMatch)
+    },
+    // Close an issue
+    'u+c': {
+        needs_shared_configuration: true,
+        handler: async (projectUriMatch) => close_issue_handler(projectUriMatch)
+    },
 }
 
 const new_branch_handler = (projectUriMatch) => {
@@ -76,9 +88,98 @@ const new_merge_request_handler = (projectUriMatch) => {
     window.location.href = `${projectUriMatch[0]}/-/merge_requests/new`;
 }
 
-const runHandlerWhenConfigurationReady = async (handler) => {
+const review_issue_handler = async (projectUriMatch) => {
+    // Check that the URL is pointing to a Gitlab project
+    if (!projectUriMatch) return;
+    const issueMatch = window.location.href.match(/\/-\/issues\/(\d+)$/);
+    if (issueMatch.length < 2) return;
+    const issueId = issueMatch[1];
+
+    const configuration = window.loadConfigurations(CONFIGURATION_KEY);
+    // Check that the configuration is set
+    if (!configuration) {
+        console.error('Error while loading the configuration in the "c+u" shortcut');
+        return;
+    }
+
+    // Label to be removed when the issue is closed
+    const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+    // Check if set and is an array
+    if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
+        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+        return;
+    }
+
+    const projectPath = encodeURIComponent(projectUriMatch[1]);
+    const body = {
+        "remove_labels": labelsToRemove.join(","),
+        "add_labels": "Revue",
+    };
+    await editIssue(issueId, projectPath, body);
+};
+
+const close_issue_handler = async (projectUriMatch) => {
+    // Check that the URL is pointing to a Gitlab project
+    if (!projectUriMatch) return;
+    const issueMatch = window.location.href.match(/\/-\/issues\/(\d+)$/);
+    if (issueMatch.length < 2) return;
+    const issueId = issueMatch[1];
+
+    const configuration = window.loadConfigurations(CONFIGURATION_KEY);
+    // Check that the configuration is set
+    if (!configuration) {
+        console.error('Error while loading the configuration in the "c+u" shortcut', configuration);
+        return;
+    }
+
+    // Label to be removed when the issue is closed
+    const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+    // Check if set and is an array
+    if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
+        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+        return;
+    }
+
+    const projectPath = encodeURIComponent(projectUriMatch[1]);
+    const body = {
+        "remove_labels": labelsToRemove.join(","),
+        "state_event": "close",
+    }
+    await editIssue(issueId, projectPath, body);
+};
+
+const editIssue = async (issueId, projectPath, body) => {
+    const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
+    if (!privateToken) {
+        console.error('Error while loading the Gitlab private API token.');
+        return;
+    }
+
+    const response = await fetch(`${window.location.origin}/api/v4/projects/${projectPath}/issues/${issueId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            "PRIVATE-TOKEN": privateToken
+        },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+    }
+}
+
+const runHandlerWhenConfigurationReady = async (handler, projectUriMatch) => {
+    if (typeof handler !== 'function') {
+        console.error('The handler is not a function.');
+        return;
+    }
+
     if (window.loadConfigurations && typeof window.loadConfigurations === 'function') {
-        return handler();
+        // Check if the function is async
+        if (handler.constructor.name === 'AsyncFunction') {
+            return await handler(projectUriMatch);
+        }
+        return handler(projectUriMatch);
     }
 
     // Wait until if (window.loadConfigurations && typeof window.loadConfigurations === 'function') is true
@@ -98,7 +199,11 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
             }
         }, 100);
     }).then(async () => {
-        return handler();
+        // Check if the function is async
+        if (handler.constructor.name === 'AsyncFunction') {
+            return await handler(projectUriMatch);
+        }
+        return handler(projectUriMatch);
     });
 }
 
@@ -201,15 +306,25 @@ function handleShortcuts(shortcuts) {
 
     for (let [keysToBePressedStr, handler] of Object.entries(shortcuts)) {
         let splittedKeys = keysToBePressedStr.toLowerCase().split('+');
+        const errorMsg = `The handler for the shortcut ${keysToBePressedStr} is not a function.`;
 
         if (typeof handler === 'object') {
             let handlerFunction = handler.handler;
+            let handlerCopy = {
+                ...handler
+            };
+            if (!handlerFunction || typeof handlerFunction !== 'function') {
+                console.error(errorMsg);
+                continue;
+            }
+
             if (handler.needs_shared_configuration) {
-                handlerFunction = async (projectUriMatch) => {
-                    return await runHandlerWhenConfigurationReady(() => handler.handler(projectUriMatch));
-                }
+                handlerFunction = async (projectUriMatch) => await runHandlerWhenConfigurationReady(handlerCopy.handler, projectUriMatch);
             }
             handler = handlerFunction;
+        } else if (typeof handler !== 'function') {
+            console.error(errorMsg);
+            continue;
         }
 
         prepared_shortcuts.push({

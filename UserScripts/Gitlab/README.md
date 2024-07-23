@@ -103,58 +103,135 @@ const GITLAB_SCRIPTS_CONFIG = {
 
 ### Configuration - `Custom Gitlab shortcuts`
 
-> _Configuration is to be defined **within the script** itself ([`Custom Gitlab shortcuts`](./gitlab-shortcuts.js))_
+> _Configuration is to be defined **within the script** itself ([`Custom Gitlab shortcuts`](./gitlab-shortcuts.js)) and within the file [`Configuration for Gitlab scripts`](./gitlab-scripts-config.js)_  
 
-The keys correspond to the shortcut to be used. \
-The value is a function that will be called when the shortcut is pressed.
 
-The `projectMatch` object is the result of a regex that matches:
+#### Configuration withinb the global configuration script
+
+This configuration has been added because of the need to access the API token for a shortcut to close an open question.
+
+You can add other configuration that mey be shared with other scripts.
+
+
+```javascript
+const GITLAB_SCRIPTS_CONFIG = {
+    // ...
+    CUSTOM_SHORTCUTS: {
+        CLOSE_ISSUE_REMOVE_LABELS: [ // List of all the labels to be removed when closing an issue (see shortcut 'c+u')
+            'TODO',
+            'Doing',
+            'Review',
+            'Testing',
+            'Done',
+        ]
+    },
+    // ...
+};
 ```
-Match 0: The full current URL
-Group 1: The project web_url
-Group 2: The full project path
-Group 3: The full group path
-Group 4: The main group name
-Group 5: The project name
-Group 6: The rest of the URL
+
+#### Configuration within the script file
+
+The keys correspond to the shortcut to be used like `Ctrl+KeyA+KeyB`. \
+The value is a function that will be called when the shortcut is pressed or an object like :
+```javascript
+{
+    needs_shared_configuration: true,
+    handler: async (projectMatch) => {
+        // A function to handle the shortcut
+        // ...
+    }
+}
+```
+
+The handlers function can either be async or not, it will correctly handle down the road.
+
+The `projectMatch` object passed to the handlers is the result of a regex that matches:
+```
+Global match: The project web_url
+Group 1: The full project path
+Group 2: The full group path
+Group 3: The main group name
+Group 4: The project name
 ```
 
 ```javascript
 const shortcuts = {
     // Go to run pipeline page
-    'r+p': (projectMatch) => {
+    'r+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/pipelines/new`;
+        window.location.href = `${projectUriMatch[0]}/-/pipelines/new`;
     },
     // Go to run project variables page
-    'v+p': (projectMatch) => {
+    'v+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/settings/ci_cd#js-cicd-variables-settings`;
+        window.location.href = `${projectUriMatch[0]}/-/settings/ci_cd#js-cicd-variables-settings`;
     },
     // Go to run project branches page
-    'b+p': (projectMatch) => {
+    'b+p': (projectUriMatch) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectMatch) return;
+        if (!projectUriMatch) return;
         // Go to the pipeline page
-        window.location.href = `${projectMatch[1]}/-/branches`;
+        window.location.href = `${projectUriMatch[0]}/-/branches`;
     },
     // Go to run project new branch page
-    'Shift+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    'Shift+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
     // Go to run project new branch page
-    'n+b+p': (projectMatch) => new_branch_callback(projectMatch),
+    'n+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
     // Go to run project new merge request page
-    'Shift+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    'Shift+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
     // Go to run project new merge request page
-    'n+m+p': (projectMatch) => new_merge_request_callback(projectMatch),
+    'n+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
+
+    'c+u': {
+        needs_shared_configuration: true,
+        handler: async (projectUriMatch) => {
+            // Check that the URL is pointing to a Gitlab project
+            if (!projectUriMatch) return;
+            const issueMatch = window.location.href.match(/\/issues\/(\d+)$/);
+            if (issueMatch.length < 2) return;
+
+            const privateToken = window.loadConfigurations('API_PRIVATE_TOKEN');
+            const configuration = window.loadConfigurations(CONFIGURATION_KEY);
+
+            // Check that the configuration is set
+            if (!privateToken || !configuration) {
+                console.error('Error while loading the configuration in the "c+u" shortcut');
+                return;
+            }
+
+            // Label to be removed when the issue is closed
+            const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+            // Check if set and is an array
+            if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
+                console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+                return;
+            }
+
+            const issueId = issueMatch[1];
+            projectPath = encodeURIComponent(projectUriMatch[1]);
+            const response = await fetch(`${window.location.origin}/api/v4/projects/${projectPath}/issues/${issueId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "PRIVATE-TOKEN": privateToken
+                },
+                body: JSON.stringify({
+                    "remove_labels": labelsToRemove.join(","),
+                    "state_event": "close",
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
+            }
+            location.reload();
+        }
+    },
 }
 ```
-
-[gitlab-token]: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html
-
 
 ### Configuration - `Create merge request on other projects from an issue`
 
@@ -200,3 +277,7 @@ const GITLAB_SCRIPTS_CONFIG = {
     }
 }
 ```
+
+
+<!-- Links -->
+[gitlab-token]: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html

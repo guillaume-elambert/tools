@@ -12,6 +12,15 @@
 
 const GITLAB_SCRIPTS_CONFIG = {
     API_PRIVATE_TOKEN: '', // replace with your private token
+    CUSTOM_SHORTCUTS: {
+        CLOSE_ISSUE_REMOVE_LABELS: [ // List of all the labels to be removed when closing an issue (see shortcut 'c+u')
+            'TODO',
+            'Doing',
+            'Review',
+            'Testing',
+            'Done',
+        ]
+    },
     PIPELINE_VARIABLES: {
         DICTIONARY: {
             "variable1": "This is the gloable description of variable 1",
