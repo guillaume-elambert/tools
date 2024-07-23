@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Create merge request on other projects from issue
-// @version      2024-07-22
+// @version      2024-07-23
 // @description  Create a merge request on a related but different projects from an issue
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*/-/issues/*
@@ -508,10 +508,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
     const issueId = window.location.href.match(/\/issues\/(\d+)/)[1];
 
-    let issueTitle = document.querySelector('.title').innerText
+    const issueTitle = document.querySelector('.title').innerText
     let branchesName = `${projectConfig.branch_name_prefix ?? DEFAULT_CONFIG.branch_name_prefix}${issueTitle}`;
     branchesName = replaceSpecialCharsBranchName(branchesName.replace('<ISSUE_ID>', issueId)).toLowerCase();
-    issueTitle = `${projectConfig.merge_request_title_prefix ?? DEFAULT_CONFIG.merge_request_title_prefix}${issueTitle}`.replace('<ISSUE_ID>', issueId);
+    const mergeRequestTitle = `Draft: ${projectConfig.merge_request_title_prefix ?? DEFAULT_CONFIG.merge_request_title_prefix}${issueTitle}`.replace('<ISSUE_ID>', issueId);
 
     checkboxesContainer.innerHTML = '';
     for (const checkbox of checkboxes) {
@@ -527,7 +527,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     <div class="gl-flex gl-flex-col gl-mt-4 gl-show-field-errors">
         <div class="form-group">
             <label for="merge-requests-name">Merge request title</label>
-            <input type="text" id="merge-requests-title" name="merge-requests-title" value="${issueTitle}" class="gl-form-input gl-w-full" placeholder="${issueTitle}">
+            <input type="text" id="merge-requests-title" name="merge-requests-title" value="${mergeRequestTitle}" class="gl-form-input gl-w-full" placeholder="${mergeRequestTitle}">
             <span class="form-text gl-font-sm gl-field-error hidden" id="field-error-mr">This field is required.</span>
             <div class="gl-form-checkbox gl-mt-4 gl-mb-3">
                 <input type="checkbox" id="include-description-in-merge-requests" name="include-description-in-merge-requests">
