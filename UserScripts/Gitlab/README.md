@@ -117,7 +117,7 @@ You can add other configuration that mey be shared with other scripts.
 const GITLAB_SCRIPTS_CONFIG = {
     // ...
     CUSTOM_SHORTCUTS: {
-        CLOSE_ISSUE_REMOVE_LABELS: [ // List of all the labels to be removed when closing an issue (see shortcut 'c+u')
+        ISSUE_STATUS_LABELS: [ // List of all the labels to be removed when closing an issue (see shortcut 'c+u')
             'TODO',
             'Doing',
             'Review',
@@ -204,10 +204,10 @@ const shortcuts = {
             }
 
             // Label to be removed when the issue is closed
-            const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+            const labelsToRemove = configuration['ISSUE_STATUS_LABELS'];
             // Check if set and is an array
             if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
-                console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+                console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'ISSUE_STATUS_LABELS' in the "c+u" shortcut`);
                 return;
             }
 

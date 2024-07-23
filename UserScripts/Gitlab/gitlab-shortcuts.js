@@ -103,10 +103,10 @@ const review_issue_handler = async (projectUriMatch) => {
     }
 
     // Label to be removed when the issue is closed
-    const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+    const labelsToRemove = configuration['ISSUE_STATUS_LABELS'];
     // Check if set and is an array
     if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
-        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'ISSUE_STATUS_LABELS' in the "c+u" shortcut`);
         return;
     }
 
@@ -133,10 +133,10 @@ const close_issue_handler = async (projectUriMatch) => {
     }
 
     // Label to be removed when the issue is closed
-    const labelsToRemove = configuration['CLOSE_ISSUE_REMOVE_LABELS'];
+    const labelsToRemove = configuration['ISSUE_STATUS_LABELS'];
     // Check if set and is an array
     if (!labelsToRemove || !Array.isArray(labelsToRemove)) {
-        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'CLOSE_ISSUE_REMOVE_LABELS' in the "c+u" shortcut`);
+        console.error(`Error while loading the configuration '${CONFIGURATION_KEY}':'ISSUE_STATUS_LABELS' in the "c+u" shortcut`);
         return;
     }
 
