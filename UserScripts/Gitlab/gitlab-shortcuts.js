@@ -115,7 +115,13 @@ const review_issue_handler = async (projectUriMatch) => {
         "remove_labels": labelsToRemove.join(","),
         "add_labels": "Revue",
     };
-    await editIssue(issueId, projectPath, body);
+
+    try {
+        await editIssue(issueId, projectPath, body);
+        location.reload();
+    } catch (error) {
+        console.error('Error while editing the issue', error);
+    }
 };
 
 const close_issue_handler = async (projectUriMatch) => {
@@ -145,7 +151,13 @@ const close_issue_handler = async (projectUriMatch) => {
         "remove_labels": labelsToRemove.join(","),
         "state_event": "close",
     }
-    await editIssue(issueId, projectPath, body);
+
+    try {
+        await editIssue(issueId, projectPath, body);
+        location.reload();
+    } catch (error) {
+        console.error('Error while editing the issue', error);
+    }
 };
 
 const editIssue = async (issueId, projectPath, body) => {
