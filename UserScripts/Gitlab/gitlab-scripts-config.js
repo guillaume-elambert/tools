@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Configuration for Gitlab scripts
-// @version      2024-07-18
+// @version      2024-07-23
 // @description  Configuration for Gitlab scripts
 // @author       Guillaume ELAMBERT
 // @match        https://gitlab.com/*
