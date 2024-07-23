@@ -53,27 +53,53 @@ const shortcuts = {
         window.location.href = `${projectUriMatch[0]}/-/branches`;
     },
     // Go to run project new branch page
-    'Shift+b+p': (projectUriMatch) => new_branch_callback(projectUriMatch),
+    'Shift+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
     // Go to run project new branch page
-    'n+b+p': (projectUriMatch) => new_branch_callback(projectUriMatch),
+    'n+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
     // Go to run project new merge request page
-    'Shift+m+p': (projectUriMatch) => new_merge_request_callback(projectUriMatch),
+    'Shift+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
     // Go to run project new merge request page
-    'n+m+p': (projectUriMatch) => new_merge_request_callback(projectUriMatch),
+    'n+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
 }
 
-const new_branch_callback = (projectUriMatch) => {
+const new_branch_handler = (projectUriMatch) => {
     // Check that the URL is pointing to a Gitlab project
     if (!projectUriMatch) return;
     // Go to the pipeline page
     window.location.href = `${projectUriMatch[0]}/-/branches/new`;
 }
 
-const new_merge_request_callback = (projectUriMatch) => {
+const new_merge_request_handler = (projectUriMatch) => {
     // Check that the URL is pointing to a Gitlab project
     if (!projectUriMatch) return;
     // Go to the pipeline page
     window.location.href = `${projectUriMatch[0]}/-/merge_requests/new`;
+}
+
+const runHandlerWhenConfigurationReady = async (handler) => {
+    if (window.loadConfigurations && typeof window.loadConfigurations === 'function') {
+        return handler();
+    }
+
+    // Wait until if (window.loadConfigurations && typeof window.loadConfigurations === 'function') is true
+    return new Promise((resolve, reject) => {
+        var timeout = setTimeout(() => {
+            console.error(`Error while waiting for window.loadConfigurations to be defined.
+Please make sure that the script "Configuration for Gitlab scripts" is executed before this script.
+Check at https://github.com/guillaume-elambert/tools for more information.`);
+            reject();
+        }, 5000);
+
+        var interval = setInterval(() => {
+            if (window.loadConfigurations && typeof window.loadConfigurations === 'function') {
+                clearInterval(interval);
+                clearTimeout(timeout);
+                resolve();
+            }
+        }, 100);
+    }).then(async () => {
+        return handler();
+    });
 }
 
 
@@ -106,7 +132,7 @@ function shortcutMatchKeysCount(shortcutKeys, keys) {
  * @param {Array} pressed_keys The keys that the user has pressed
  * @param {Function} timeoutFunction The function to call when the timeout is reached
  */
-function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
+async function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
 
     // Ensure that the user is not in a field where he can type
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
@@ -127,7 +153,7 @@ function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
 
         if (!shortcutHasKeys(keysToBePressed, pressed_keys)) continue;
         matchingShortCuts++;
-        // If the keys match, call the callback
+        // If the keys match, call the handler
         if (pressed_keys.length === keysToBePressed.length) {
             completedShortcuts.push(preparedShortcut);
         }
@@ -143,10 +169,15 @@ function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction) {
     // Order the completed shortcuts by the number of keys
     completedShortcuts.sort((a, b) => shortcutMatchKeysCount(b.keysToBePressed, pressed_keys) - shortcutMatchKeysCount(a.keysToBePressed, pressed_keys));
 
-    // Call all the callbacks until one returns true
+    // Call all the handlers until one returns true
     for (const completedShortcut of completedShortcuts) {
-        let callback = completedShortcut.callback;
-        if (callback(projectUriMatch)) return;
+        let handler = completedShortcut.handler;
+        // Check if the function is async
+        if (handler.constructor.name === 'AsyncFunction') {
+            if (await handler(projectUriMatch)) return;
+            continue;
+        }
+        if (handler(projectUriMatch)) return;
     }
 
     shortcutsTimeout = setTimeout(timeoutFunction, timeoutLength);
@@ -168,15 +199,26 @@ function handleShortcuts(shortcuts) {
         alert('Konami code');
     }
 
-    for (const [keysToBePressedStr, callback] of Object.entries(shortcuts)) {
+    for (let [keysToBePressedStr, handler] of Object.entries(shortcuts)) {
         let splittedKeys = keysToBePressedStr.toLowerCase().split('+');
+
+        if (typeof handler === 'object') {
+            let handlerFunction = handler.handler;
+            if (handler.needs_shared_configuration) {
+                handlerFunction = async (projectUriMatch) => {
+                    return await runHandlerWhenConfigurationReady(() => handler.handler(projectUriMatch));
+                }
+            }
+            handler = handlerFunction;
+        }
+
         prepared_shortcuts.push({
             "keysToBePressed": splittedKeys,
-            "callback": callback
+            "handler": handler
         });
     }
 
-    window.addEventListener('keydown', (event) => handleKeyPressed(event, prepared_shortcuts, pressed_keys, timeoutFunction));
+    window.addEventListener('keydown', async (event) => await handleKeyPressed(event, prepared_shortcuts, pressed_keys, timeoutFunction));
 }
 
 // Add the shortcuts
