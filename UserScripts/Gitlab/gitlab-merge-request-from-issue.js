@@ -79,6 +79,10 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         const endpointsToCheck = {
             group_endpoint: {
                 endpoint: `/api/v4/groups/${group}/projects`,
+                additional_args: {
+                    order_by: 'path',
+                    sort: 'asc'
+                },
             },
             user_endpoint: {
                 endpoint: `/api/v4/projects`,
@@ -90,7 +94,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
         const additionalArgs = {
             min_access_level: GITLAB_DEVELOPER_ACCESS,
-            membership: true,
             include_subgroups: true,
             with_merge_requests_enabled: true,
             archived: false,
@@ -416,7 +419,6 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
 
             try {
                 if (!(await isValidProject(project))) {
-                    // Remove the project from the list
                     continue;
                 }
 
@@ -489,6 +491,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         projectConfig.include_issue_description ??
         false
     ).length;
+
     const checkboxes = computeProjectsCheckboxes(apiLoadedProjects);
 
 
@@ -744,6 +747,4 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     });
 
 
-}).catch(() => {
-    return;
-});
+})
