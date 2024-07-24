@@ -11,6 +11,13 @@
 
 const CONFIGURATION_KEY = 'CUSTOM_SHORTCUTS';
 
+// Create an enum with the elements 'GROUP', 'PROJECT', 'OTHER'
+const PageType = Object.freeze({
+    GROUP: 'GROUP',
+    PROJECT: 'PROJECT',
+    OTHER: 'OTHER'
+});
+
 // Regex that matches :
 // Match 1: The project web_url
 // Group 1: The full project path
@@ -18,79 +25,103 @@ const CONFIGURATION_KEY = 'CUSTOM_SHORTCUTS';
 // Group 3: The main group name
 // Group 4: The project name
 const projectPattern = /https?:\/\/[^\/]+\/((([^\/]+)(?:\/[^\/]+)?)\/([^.\/]+))/i;
-let projectUriMatch = undefined;
+
+// Regex that matches :
+// Match 1: The group web_url
+// Group 1: The full group path
+// Group 2: The main group name
+const groupPattern = /https?:\/\/[^\/]+\/groups\/(([^\/]+)(?:\/[^\/]+)?)/i;
+
+let uriMatch = undefined;
 let dataProjectFullPath = document.querySelector('body').getAttribute('data-project-full-path');
+let dataGroupFullPath = document.querySelector('body').getAttribute('data-group-full-path');
+let pageType = PageType.OTHER;
 
 if (dataProjectFullPath) {
     if (!dataProjectFullPath.startsWith('/') && !window.location.origin.endsWith('/')) dataProjectFullPath = `/${dataProjectFullPath}`;
-    projectUriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
+    uriMatch = `${window.location.origin}${dataProjectFullPath}`.match(projectPattern);
+    pageType = PageType.PROJECT;
+} else if (dataGroupFullPath) {
+    uriMatch = `${window.location.origin}/groups/${dataGroupFullPath}`.match(groupPattern);
+    pageType = PageType.GROUP;
 } else {
-    console.log('The user is not currently on a project page.');
+    console.log('The user is neither on a project or group page.');
+    uriMatch = window.location.href.match(projectPattern);
 }
 
+window.pageType = pageType;
+window.uriMatch = uriMatch;
 
 const timeoutLength = 1000;
 var shortcutsTimeout = undefined;
 
 const shortcuts = {
     // Go to run pipeline page
-    'r+p': (projectUriMatch) => {
+    'r+p': (uriMatch, pageType) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectUriMatch) return;
+        if (!uriMatch || !pageType) return;
+        if (pageType !== PageType.PROJECT) return;
         // Go to the pipeline page
-        window.location.href = `${projectUriMatch[0]}/-/pipelines/new`;
+        window.location.href = `${uriMatch[0]}/-/pipelines/new`;
     },
     // Go to run project variables page
-    'v+p': (projectUriMatch) => {
-        // Check that the URL is pointing to a Gitlab project
-        if (!projectUriMatch) return;
+    'v+p': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab project or group
+        if (!uriMatch || !pageType) return;
+        if (![PageType.PROJECT, PageType.GROUP].includes(pageType)) return;
         // Go to the pipeline page
-        window.location.href = `${projectUriMatch[0]}/-/settings/ci_cd#js-cicd-variables-settings`;
+        window.location.href = `${uriMatch[0]}/-/settings/ci_cd#js-cicd-variables-settings`;
     },
     // Go to run project branches page
-    'b+p': (projectUriMatch) => {
+    'b+p': (uriMatch, pageType) => {
         // Check that the URL is pointing to a Gitlab project
-        if (!projectUriMatch) return;
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.PROJECT) return;
         // Go to the pipeline page
-        window.location.href = `${projectUriMatch[0]}/-/branches`;
+        window.location.href = `${uriMatch[0]}/-/branches`;
     },
     // Go to run project new branch page
-    'Shift+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
+    'Shift+b+p': (uriMatch, pageType) => new_branch_handler(uriMatch, pageType),
     // Go to run project new branch page
-    'n+b+p': (projectUriMatch) => new_branch_handler(projectUriMatch),
+    'n+b+p': (uriMatch, pageType) => new_branch_handler(uriMatch, pageType),
     // Go to run project new merge request page
-    'Shift+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
+    'Shift+m+p': (uriMatch) => new_merge_request_handler(uriMatch, pageType),
     // Go to run project new merge request page
-    'n+m+p': (projectUriMatch) => new_merge_request_handler(projectUriMatch),
+    'n+m+p': (uriMatch) => new_merge_request_handler(uriMatch, pageType),
     // Set an issue to review state
     'u+r': {
         needs_shared_configuration: true,
-        handler: (projectUriMatch) => review_issue_handler(projectUriMatch)
+        handler: (uriMatch, pageType) => review_issue_handler(uriMatch, pageType)
     },
     // Close an issue
     'u+c': {
         needs_shared_configuration: true,
-        handler: async (projectUriMatch) => close_issue_handler(projectUriMatch)
+        handler: async (uriMatch, pageType) => close_issue_handler(uriMatch, pageType)
     },
 }
 
-const new_branch_handler = (projectUriMatch) => {
+const new_branch_handler = (uriMatch, pageType) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectUriMatch) return;
+    if (!uriMatch || !pageType) return;
+    if (pageType !== PageType.PROJECT) return
+
     // Go to the pipeline page
-    window.location.href = `${projectUriMatch[0]}/-/branches/new`;
+    window.location.href = `${uriMatch[0]}/-/branches/new`;
 }
 
-const new_merge_request_handler = (projectUriMatch) => {
+const new_merge_request_handler = (uriMatch, pageType) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectUriMatch) return;
+    if (!uriMatch || !pageType) return;
+    if (pageType !== PageType.PROJECT) return;
     // Go to the pipeline page
-    window.location.href = `${projectUriMatch[0]}/-/merge_requests/new`;
+    window.location.href = `${uriMatch[0]}/-/merge_requests/new`;
 }
 
-const review_issue_handler = async (projectUriMatch) => {
+const review_issue_handler = async (uriMatch, pageType) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectUriMatch) return;
+    if (!uriMatch || !pageType) return;
+    if (pageType !== PageType.PROJECT) return;
+
     const issueMatch = window.location.href.match(/\/-\/issues\/(\d+)$/);
     if (issueMatch.length < 2) return;
     const issueId = issueMatch[1];
@@ -110,7 +141,7 @@ const review_issue_handler = async (projectUriMatch) => {
         return;
     }
 
-    const projectPath = encodeURIComponent(projectUriMatch[1]);
+    const projectPath = encodeURIComponent(uriMatch[1]);
     const body = {
         "remove_labels": labelsToRemove.join(","),
         "add_labels": "Revue",
@@ -124,9 +155,11 @@ const review_issue_handler = async (projectUriMatch) => {
     }
 };
 
-const close_issue_handler = async (projectUriMatch) => {
+const close_issue_handler = async (uriMatch, pageType) => {
     // Check that the URL is pointing to a Gitlab project
-    if (!projectUriMatch) return;
+    if (!uriMatch || !pageType) return;
+    if (pageType !== PageType.PROJECT) return;
+
     const issueMatch = window.location.href.match(/\/-\/issues\/(\d+)$/);
     if (issueMatch.length < 2) return;
     const issueId = issueMatch[1];
@@ -146,7 +179,7 @@ const close_issue_handler = async (projectUriMatch) => {
         return;
     }
 
-    const projectPath = encodeURIComponent(projectUriMatch[1]);
+    const projectPath = encodeURIComponent(uriMatch[1]);
     const body = {
         "remove_labels": labelsToRemove.join(","),
         "state_event": "close",
@@ -180,7 +213,7 @@ const editIssue = async (issueId, projectPath, body) => {
     }
 }
 
-const runHandlerWhenConfigurationReady = async (handler, projectUriMatch) => {
+const runHandlerWhenConfigurationReady = async (handler, uriMatch, pageType) => {
     if (typeof handler !== 'function') {
         console.error('The handler is not a function.');
         return;
@@ -189,9 +222,9 @@ const runHandlerWhenConfigurationReady = async (handler, projectUriMatch) => {
     if (window.loadConfigurations && typeof window.loadConfigurations === 'function') {
         // Check if the function is async
         if (handler.constructor.name === 'AsyncFunction') {
-            return await handler(projectUriMatch);
+            return await handler(uriMatch, pageType);
         }
-        return handler(projectUriMatch);
+        return handler(uriMatch, pageType);
     }
 
     // Wait until if (window.loadConfigurations && typeof window.loadConfigurations === 'function') is true
@@ -213,9 +246,9 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
     }).then(async () => {
         // Check if the function is async
         if (handler.constructor.name === 'AsyncFunction') {
-            return await handler(projectUriMatch);
+            return await handler(uriMatch, uriMatch);
         }
-        return handler(projectUriMatch);
+        return handler(uriMatch, uriMatch);
     });
 }
 
@@ -291,10 +324,10 @@ async function handleKeyPressed(event, shortcuts, pressed_keys, timeoutFunction)
         let handler = completedShortcut.handler;
         // Check if the function is async
         if (handler.constructor.name === 'AsyncFunction') {
-            if (await handler(projectUriMatch)) return;
+            if (await handler(uriMatch, pageType)) return;
             continue;
         }
-        if (handler(projectUriMatch)) return;
+        if (handler(uriMatch, pageType)) return;
     }
 
     shortcutsTimeout = setTimeout(timeoutFunction, timeoutLength);
@@ -331,7 +364,7 @@ function handleShortcuts(shortcuts) {
             }
 
             if (handler.needs_shared_configuration) {
-                handlerFunction = async (projectUriMatch) => await runHandlerWhenConfigurationReady(handlerCopy.handler, projectUriMatch);
+                handlerFunction = async (uriMatch) => await runHandlerWhenConfigurationReady(handlerCopy.handler, uriMatch, pageType);
             }
             handler = handlerFunction;
         } else if (typeof handler !== 'function') {
