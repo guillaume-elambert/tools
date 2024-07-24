@@ -55,7 +55,11 @@ window.uriMatch = uriMatch;
 const timeoutLength = 1000;
 var shortcutsTimeout = undefined;
 
-const shortcuts = {
+
+/***********************************/
+/****  Custom Gitlab shortcuts  ****/
+/***********************************/
+const CUSTOM_SHORTCUTS = {
     // Go to run pipeline page
     'r+p': (uriMatch, pageType) => {
         // Check that the URL is pointing to a Gitlab project
@@ -212,6 +216,75 @@ const editIssue = async (issueId, projectPath, body) => {
         throw new Error(`HTTP error! status: ${response.status}. ${response.statusText}`);
     }
 }
+
+
+/**********************************/
+/****  Gitlab shortcuts clone  ****/
+/**********************************/
+
+const ADDITIONAL_GROUP_SHORTCUTS = {
+    'g+o': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group overview page
+        window.location.href = `${uriMatch[0]}`;
+    },
+    'g+v': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group activity page
+        window.location.href = `${uriMatch[0]}/-/activity`;
+    },
+    'g+i': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group issues page
+        window.location.href = `${uriMatch[0]}/-/issues`;
+    },
+    'g+b': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group boards page
+        window.location.href = `${uriMatch[0]}/-/boards`;
+    },
+    'g+m': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the merge requests page
+        window.location.href = `${uriMatch[0]}/-/merge_requests`;
+    },
+    'g+k': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group clusters page
+        window.location.href = `${uriMatch[0]}/-/clusters`;
+    },
+    'g+w': (uriMatch, pageType) => {
+        // Check that the URL is pointing to a Gitlab group
+        if (!uriMatch || !pageType) return;
+        if (pageType != PageType.GROUP) return;
+
+        // Go to the group wiki page
+        window.location.href = `${uriMatch[0]}/-/wikis/home`;
+    },
+}
+
+
+/***************************************/
+/****  Shortcuts compute functions  ****/
+/***************************************/
 
 const runHandlerWhenConfigurationReady = async (handler, uriMatch, pageType) => {
     if (typeof handler !== 'function') {
@@ -382,4 +455,5 @@ function handleShortcuts(shortcuts) {
 }
 
 // Add the shortcuts
-handleShortcuts(shortcuts);
+handleShortcuts(CUSTOM_SHORTCUTS);
+if (pageType === PageType.GROUP) handleShortcuts(ADDITIONAL_GROUP_SHORTCUTS);
