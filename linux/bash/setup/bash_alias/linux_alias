@@ -1,7 +1,6 @@
-alias l='ls -a'
-alias ll='ls -l'
-alias la='ls -la'
-
+alias l='ls -CF'
+alias ll='ls -alF'
+alias la='ls -A'
 
 function generate_folder_aliases {
     # Check that there is only one argument
@@ -33,7 +32,6 @@ function generate_folder_aliases {
         alias "g$directoryName"="git -C \"$d\" status"
     fi
 }
-
 
 function generate_subfolders_aliases {
     # Check that there is only one argument
