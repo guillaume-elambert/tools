@@ -45,7 +45,7 @@ complete -F _complete_alias kgpy
 alias kgpv="kubectl get pv"
 alias kgpvw="kubectl get pv -o=wide"
 alias kgpvy="kubectl get pv -o=yaml"
-complete -F _complete_alias kgpv                                                              
+complete -F _complete_alias kgpv
 complete -F _complete_alias kgpvw
 complete -F _complete_alias kgpvy
 
@@ -92,7 +92,6 @@ complete -F _complete_alias kgsc
 complete -F _complete_alias kgscw
 complete -F _complete_alias kgscy
 
-
 alias kd="kubectl describe"
 complete -F _complete_alias kd
 
@@ -119,11 +118,10 @@ complete -F _complete_alias kds
 complete -F _complete_alias kdsa
 complete -F _complete_alias kdsc
 
-
 alias kdel="kubectl delete"
 alias kdelf="kubectl delete -f"
 complete -F _complete_alias kdel
-complete -F _complete_alias kdelf   
+complete -F _complete_alias kdelf
 
 alias kdeld="kubectl delete deployment"
 alias kdelds="kubectl delete daemonset"
@@ -151,20 +149,19 @@ complete -F _complete_alias kdelsc
 alias kl="kubectl logs"
 alias kcx="kubectl exec -it"
 alias kpf="kubectl port-forward"
-alias ka="kubectl apply -f"
+alias kaf="kubectl apply -f"
 complete -F _complete_alias kl
 complete -F _complete_alias kcx
 complete -F _complete_alias kdeli
 complete -F _complete_alias kpf
-complete -F _complete_alias ka
-
+complete -F _complete_alias kaf
 
 function generate_aliases_from_kubecontexts {
     local app=$1
-    if [ -z "$app" ] || { ! type "$app" &> /dev/null && ! type "${1}.exe" &> /dev/null; }; then
+    if [ -z "$app" ] || { ! type "$app" &>/dev/null && ! type "${1}.exe" &>/dev/null; }; then
         return 1
     fi
-    
+
     local prefix=${2:-""}
     local return_instead_of_alias=0
 
@@ -175,11 +172,11 @@ function generate_aliases_from_kubecontexts {
     else
         declare -A return_array
     fi
-    
+
     local contexts=$(kubectl config get-contexts -o name)
     local kubeconfig_back=$KUBECONFIG
     local kubeconfig
-    
+
     if [ -z "$prefix" ]; then
         export KUBECONFIG=$(realpath "$HOME/.kube/config")
     else
@@ -200,31 +197,31 @@ function generate_aliases_from_kubecontexts {
         alias_name=$(echo $alias_name | tr '[:upper:]' '[:lower:]')
 
         case $alias_name in
-            *dev*)
-                begin=${alias_name%dev*}
-                end=${alias_name##*dev}
-                alias_name="${begin}d${end}"
-                ;;
-            *test*)
-                begin=${alias_name%test*}
-                end=${alias_name##*test}
-                alias_name="${begin}t${end}"
-                ;;
-            *pprod*)
-                begin=${alias_name%pprod*}
-                end=${alias_name##*pprod}
-                alias_name="${prefix}pp${end}"
-                ;;
-            *preprod*)
-                begin=${alias_name%preprod*}
-                end=${alias_name##*preprod}
-                alias_name="${begin}pp${end}"
-                ;;
-            *prod*)
-                begin=${alias_name%prod*}
-                end=${alias_name##*prod}
-                alias_name="${begin}p${end}"
-                ;;
+        *dev*)
+            begin=${alias_name%dev*}
+            end=${alias_name##*dev}
+            alias_name="${begin}d${end}"
+            ;;
+        *test*)
+            begin=${alias_name%test*}
+            end=${alias_name##*test}
+            alias_name="${begin}t${end}"
+            ;;
+        *pprod*)
+            begin=${alias_name%pprod*}
+            end=${alias_name##*pprod}
+            alias_name="${prefix}pp${end}"
+            ;;
+        *preprod*)
+            begin=${alias_name%preprod*}
+            end=${alias_name##*preprod}
+            alias_name="${begin}pp${end}"
+            ;;
+        *prod*)
+            begin=${alias_name%prod*}
+            end=${alias_name##*prod}
+            alias_name="${begin}p${end}"
+            ;;
         esac
 
         # If alias name does not start with the prefix
@@ -241,16 +238,16 @@ function generate_aliases_from_kubecontexts {
         "
 
         return_array["$alias_name"]=$command
-        
+
     done
 
     if [ $return_instead_of_alias -eq 1 ]; then
-        return 
+        return
     fi
 
     for alias_name in "${!return_array[@]}"; do
         # Check if the alias already exists
-        if alias $alias_name &> /dev/null; then
+        if alias $alias_name &>/dev/null; then
             continue
         fi
 
@@ -259,7 +256,7 @@ function generate_aliases_from_kubecontexts {
         local skip=0
 
         # If the alias referes to a command that exists, skip it
-        while type $alias_name &> /dev/null; do
+        while type $alias_name &>/dev/null; do
             ((iterCount++))
             # If the iterCount is greater than the length of the app, set the iterCount to the length of the app
             if [ $iterCount -gt ${#app} ]; then
@@ -280,17 +277,16 @@ function generate_aliases_from_kubecontexts {
     done
 }
 
-
 function generate_aliases_from_kubeconfigs {
     local app=$1
-    if [ -z "$app" ] || { ! type "$app" &> /dev/null && ! type "${1}.exe" &> /dev/null; }; then
+    if [ -z "$app" ] || { ! type "$app" &>/dev/null && ! type "${1}.exe" &>/dev/null; }; then
         echo "generate_aliases_from_kubeconfigs - Invalid app: $app"
         return 1
     fi
 
     local configs
     mapfile -d $'\0' configs < <(find -L $HOME/.kube -mindepth 2 -maxdepth 2 -type f -name 'config' -print0)
-    
+
     if [ -f "$HOME/.kube/config" ]; then
         # Add the $HOME/.kube/config file as the first element of the array
         configs=("$HOME/.kube/config" "${configs[@]}")
@@ -305,7 +301,7 @@ function generate_aliases_from_kubeconfigs {
         prefix=$(basename $(dirname ${config}))
         # If the prefix is ".kube" the prefix is empty
         [ "$prefix" == ".kube" ] && prefix=""
-        
+
         # Merge aliases with the new aliases
         generate_aliases_from_kubecontexts "$app" "$prefix" "new_aliases"
         for alias_name in "${!new_aliases[@]}"; do
@@ -315,10 +311,10 @@ function generate_aliases_from_kubeconfigs {
         done
         new_aliases=()
     done
-    
+
     for alias_name in "${!aliases[@]}"; do
         # Check if the alias already exists
-        if alias $alias_name &> /dev/null; then
+        if alias $alias_name &>/dev/null; then
             continue
         fi
 
@@ -327,7 +323,7 @@ function generate_aliases_from_kubeconfigs {
         local skip=0
 
         # If the alias referes to a command that exists, skip it
-        while type "${alias_name}" &> /dev/null; do
+        while type "${alias_name}" &>/dev/null; do
             ((iterCount++))
             # If the iterCount is greater than the length of the app, set the iterCount to the length of the app
             if [ $iterCount -gt ${#app} ]; then
@@ -348,7 +344,6 @@ function generate_aliases_from_kubeconfigs {
     done
 }
 
-
 function kubectl_aliases {
     local regex="^alias ([^=]+)='# generate_aliases_from_kubecontexts::([^:]*)::([^:]*)::(.*)"
     local aliases
@@ -359,7 +354,8 @@ function kubectl_aliases {
         return 1
     fi
 
-    local printConfig=$(cat <<EOF
+    local printConfig=$(
+        cat <<EOF
 [
     {
         "name": "Alias",
@@ -392,20 +388,20 @@ EOF
     local index=0
     local max_length=()
 
-    readarray -t config <<< "$(echo "$printConfig" | jq -rc '.[]')"
-    
+    readarray -t config <<<"$(echo "$printConfig" | jq -rc '.[]')"
+
     for aliasIndex in "${!aliases[@]}"; do
         if [[ ${aliases[$aliasIndex]} =~ $regex ]]; then
             index=0
             for bashRematch in "${BASH_REMATCH[@]}"; do
-                if (( "${#bashRematch}" > "${max_length[$index]:-0}" )); then
+                if (("${#bashRematch}" > "${max_length[$index]:-0}")); then
                     max_length[$index]=${#bashRematch}
                 fi
                 ((index++))
             done
         fi
     done
-    
+
     local additional_format='\e[1m\e[4m'
     local column_format='\e[${COLOR}m %-${WIDTH}s \e[0m'
     local header_format='${HEADER_STYLE}${HEADER_FORMAT}'
@@ -459,7 +455,7 @@ EOF
 
     # Print the header in bold
     printf "$header_printf_format" "${headers[@]}"
-    
+
     for index in "${!aliases[@]}"; do
         if [[ ${aliases[$index]} =~ $regex ]]; then
             # Get all the bash rematches values from witch index is in regexIndexes
@@ -471,7 +467,7 @@ EOF
         fi
     done
 }
-alias ka=kubectl_aliases
+alias ka="kubectl_aliases"
 
 generate_aliases_from_kubeconfigs k9s
 # generate_aliases_from_kubecontexts k9s
