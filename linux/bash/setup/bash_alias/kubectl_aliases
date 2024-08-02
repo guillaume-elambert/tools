@@ -156,6 +156,59 @@ complete -F _complete_alias kdeli
 complete -F _complete_alias kpf
 complete -F _complete_alias kaf
 
+function run_kubectl_alias {
+    kubeconfig="$1"
+    context="$2"
+    app="$3"
+
+    # Check that all the arguments are not empty
+    if [ -z "$kubeconfig" ] || [ -z "$context" ] || [ -z "$app" ]; then
+        echo -e "\e[31mrun_kubectl_alias - Invalid arguments !\e[0m"
+        return 1
+    fi
+
+    echo -e "\e[38;5;214mSwitching to kubeconfig: \"${kubeconfig}\"...\e[0m"
+    local kubeconfig_back=$KUBECONFIG
+    export KUBECONFIG="${kubeconfig}"
+    local result=$?
+
+    echo -ne "\e[1A\e[0K"
+
+    if [ $result -ne 0 ] || [ ! -f "${kubeconfig}" ]; then
+        echo -e "\e[31mFailed to switch to kubeconfig: \"${kubeconfig}\" !\e[0m"
+        export KUBECONFIG=$kubeconfig_back
+        return 1
+    fi
+
+    echo -e "\e[32mSuccessfully switched to kubeconfig: \"${kubeconfig}\" !\e[0m"
+
+    echo -e "\e[38;5;214mSwitching to context: \"${context}\"...\e[0m"
+    kubectl config use-context "${context}" &>/dev/null
+    result=$?
+
+    echo -ne "\e[1A\e[0K"
+
+    if [ $result -ne 0 ]; then
+        echo -e "\e[31mFailed to switch to context: \"${context}\" !\e[0m"
+        return $result
+    fi
+
+    echo -e "\e[32mSuccessfully switched to context: \"${context}\" !\e[0m"
+
+    echo -e "\e[38;5;214mRunning \"${app}\"...\e[0m"
+    ${app} &>/dev/null
+    result=$?
+
+    echo -ne "\e[1A\e[0K"
+
+    if [ $result -ne 0 ]; then
+        echo -e "\e[31mFailed to run \"${app}\" !\e[0m"
+        return $result
+    fi
+
+    echo -e "\e[32mSuccessfully ran \"${app}\" !\e[0m"
+}
+
 function generate_aliases_from_kubecontexts {
     local app=$1
     if [ -z "$app" ] || { ! type "$app" &>/dev/null && ! type "${1}.exe" &>/dev/null; }; then
@@ -227,13 +280,8 @@ function generate_aliases_from_kubecontexts {
             alias_name="${prefix}${alias_name}"
         fi
 
-        command="# generate_aliases_from_kubecontexts::$app::${2:-default}::$context
-            export KUBECONFIG=/home/gelambert/.kube/config \\
-            && echo -e '\e[32mSwitching to kubeconfig: \"$kubeconfig\" !\e[0m' \\
-            && kubectl config use-context $context &> /dev/null \\
-            && echo -e '\e[32mSwitched to context: \"$context\" !\e[0m' \\
-            && $app
-        "
+        command="# generate_aliases_from_kubecontexts::${app}::${2:-default}::${context}
+        run_kubectl_alias \"${kubeconfig}\" \"${context}\" \"${app}\""
 
         return_array["$alias_name"]=$command
 
@@ -343,7 +391,7 @@ function generate_aliases_from_kubeconfigs {
 }
 
 function kubectl_aliases {
-    local regex="^alias ([^=]+)='# generate_aliases_from_kubecontexts::([^:]*)::([^:]*)::(.*)"
+    local regex="^alias ([^=]+)='\\s*# generate_aliases_from_kubecontexts::([^:]*)::([^:]*)::(.*)"
     local aliases
     mapfile -t aliases < <(alias | grep -E "$regex")
 
