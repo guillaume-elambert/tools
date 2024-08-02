@@ -173,7 +173,7 @@ function generate_aliases_from_kubecontexts {
         declare -A return_array
     fi
 
-    local contexts=$(kubectl config get-contexts -o name)
+    local contexts
     local kubeconfig_back=$KUBECONFIG
     local kubeconfig
 
@@ -186,15 +186,13 @@ function generate_aliases_from_kubecontexts {
     kubeconfig="${KUBECONFIG}"
     contexts=$(kubectl config get-contexts -o name)
     export KUBECONFIG=$kubeconfig_back
-    prefix=$(echo $prefix | tr -d '[:punct:]')
-    prefix=$(echo $prefix | tr '[:upper:]' '[:lower:]')
+    prefix=$(echo $prefix | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]')
 
     local context alias_name command begin end
 
     for context in $contexts; do
         # Remove any non-alphanumeric characters
-        alias_name=$(echo $context | tr -d '[:punct:]')
-        alias_name=$(echo $alias_name | tr '[:upper:]' '[:lower:]')
+        alias_name=$(echo $context | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]')
 
         case $alias_name in
         *dev*)
