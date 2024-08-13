@@ -551,7 +551,7 @@ Check at https://github.com/guillaume-elambert/tools for more information.`);
         </div>
 
         <div class="form-group">
-            <button id="create-branches" class="btn btn-primary" disabled>
+            <button id="create-branches" class="gl-button btn-confirm" disabled>
                 <span class="gl-button-text">Create branch and merge request on selected projects</span>
             </button>
         </div>
