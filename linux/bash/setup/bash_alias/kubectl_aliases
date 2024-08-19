@@ -196,16 +196,17 @@ function run_kubectl_alias {
     echo -e "\e[32mSuccessfully switched to context: \"${context}\" !\e[0m"
 
     echo -e "\e[38;5;214mRunning \"${app}\"...\e[0m"
-    ${app} &>/dev/null
-    result=$?
 
-    echo -ne "\e[1A\e[0K"
+    # Launch the app with the remaining arguments
+    ${app} "${@:4}"
+    result=$?
 
     if [ $result -ne 0 ]; then
         echo -e "\e[31mFailed to run \"${app}\" !\e[0m"
         return $result
     fi
 
+    echo -ne "\e[1A\e[0K"
     echo -e "\e[32mSuccessfully ran \"${app}\" !\e[0m"
 }
 
@@ -281,9 +282,10 @@ function generate_aliases_from_kubecontexts {
         fi
 
         command="# generate_aliases_from_kubecontexts::${app}::${2:-default}::${context}
-        run_kubectl_alias \"${kubeconfig}\" \"${context}\" \"${app}\""
+        run_kubectl_alias \"${kubeconfig}\" \"${context}\" \"${app}\" \$@"
 
-        return_array["$alias_name"]=$command
+        [ $return_instead_of_alias -eq 1 ] &&
+            return_array["$alias_name"]=$command
 
     done
 
@@ -390,8 +392,27 @@ function generate_aliases_from_kubeconfigs {
     done
 }
 
+function remove_kubectl_aliases {
+    local app=${1:-"[^:]*"}
+    local regex="^alias ([^=]+)='\\s*# generate_aliases_from_kubecontexts::(${app})::([^:]*)::(.*)"
+    local aliases
+    mapfile -t aliases < <(alias | grep -E "$regex")
+
+    if [ ${#aliases[@]} -eq 0 ]; then
+        return 1
+    fi
+
+    # Remove all the aliases that have the regex in the comment
+    for aliasIndex in "${!aliases[@]}"; do
+        if [[ ${aliases[$aliasIndex]} =~ $regex ]]; then
+            unalias ${BASH_REMATCH[1]}
+        fi
+    done
+}
+
 function kubectl_aliases {
-    local regex="^alias ([^=]+)='\\s*# generate_aliases_from_kubecontexts::([^:]*)::([^:]*)::(.*)"
+    local app=${1:-"[^:]*"}
+    local regex="^alias ([^=]+)='\\s*# generate_aliases_from_kubecontexts::(${app})::([^:]*)::(.*)"
     local aliases
     mapfile -t aliases < <(alias | grep -E "$regex")
 
@@ -515,5 +536,11 @@ EOF
 }
 alias ka="kubectl_aliases"
 
-generate_aliases_from_kubeconfigs k9s
+apps_to_alias=("k9s")
+
+for app in "${apps_to_alias[@]}"; do
+    remove_kubectl_aliases $app
+    generate_aliases_from_kubeconfigs $app
+done
+
 # generate_aliases_from_kubecontexts k9s
