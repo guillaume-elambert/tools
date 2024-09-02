@@ -1,36 +1,19 @@
 plugins:
   export-pod-logs:
     shortCut: Ctrl-L
-    confirm: true
+    confirm: false
     description: Export pod logs to a file
     scopes:
       - pods
     command: bash
     background: true
     args:
-      - -c 
+      - -c
       - |
         logs=$(kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true);
         if [ $? -eq 0 ]; then
           mkdir -p $HOME/kubelogs/$CONTEXT; 
-          echo "$logs" > $HOME/kubelogs/$CONTEXT/$NAME.txt;
-        fi
-
-  export-container-logs:
-    shortCut: Ctrl-L
-    confirm: true
-    description: Open container logs in Visual Studio Code
-    scopes:
-      - containers
-    command: bash
-    background: false
-    args:
-      - -c
-      - |
-        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT);
-        if [ $? -eq 0 ]; then
-          mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
-          echo "$logs" > $HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt;
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/$NAME.txt";
         fi
 
   pod-logs-vscode:
@@ -42,8 +25,31 @@ plugins:
     command: bash
     background: true
     args:
-      - -c 
-      - kubectl logs --follow=false --timestamps $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true | code -
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT; 
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/$NAME.txt";
+          code "$HOME/kubelogs/$CONTEXT/$NAME.txt";
+        fi
+
+  export-container-logs:
+    shortCut: Ctrl-L
+    confirm: false
+    description: Open container logs in Visual Studio Code
+    scopes:
+      - containers
+    command: bash
+    background: false
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+        fi
 
   container-logs-vscode:
     shortCut: Shift-L
@@ -55,4 +61,80 @@ plugins:
     background: true
     args:
       - -c
-      - kubectl logs --follow=false --timestamps $POD -c $NAME -n $NAMESPACE --context $CONTEXT | code -
+      - |
+        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+          code "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+        fi
+
+  export-previous-pod-logs:
+    shortCut: Shift-E
+    confirm: false
+    description: Export previous pod logs to a file
+    scopes:
+      - pods
+    command: bash
+    background: true
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true --previous);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT; 
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/$NAME.txt";
+        fi
+
+  previous-pod-logs-vscode:
+    shortCut: Shift-P
+    confirm: false
+    description: Open previous pod logs in Visual Studio Code
+    scopes:
+      - pods
+    command: bash
+    background: true
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $NAME -n $NAMESPACE --context $CONTEXT --all-containers=true --previous);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT; 
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/$NAME.txt";
+          code "$HOME/kubelogs/$CONTEXT/$NAME.txt";
+        fi
+
+  export-previous-container-logs:
+    shortCut: Ctrl-P
+    confirm: false
+    description: Export previous container logs to a file
+    scopes:
+      - containers
+    command: bash
+    background: false
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT --previous);
+        if [ $? -eq 0 ]; then
+          mkdir -p "$HOME/kubelogs/$CONTEXT/${POD}";
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+        fi
+
+  previous-container-logs-vscode:
+    shortCut: Shift-P
+    confirm: false
+    description: Export previous container logs to a file
+    scopes:
+      - containers
+    command: bash
+    background: true
+    args:
+      - -c
+      - |
+        logs=$(kubectl logs --follow=false $POD -c $NAME -n $NAMESPACE --context $CONTEXT --previous);
+        if [ $? -eq 0 ]; then
+          mkdir -p $HOME/kubelogs/$CONTEXT/${POD};
+          echo "$logs" > "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+          code "$HOME/kubelogs/$CONTEXT/${POD}/${NAME}.txt";
+        fi
