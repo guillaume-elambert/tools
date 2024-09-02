@@ -1,0 +1,35 @@
+#!/bin/bash
+
+function generate_subfolders_aliases {
+    # Check that there is only one argument
+    if [ $# -ne 1 ]; then
+        echo "Usage: generateAlias <directory>"
+        return 1
+    fi
+
+    # Get the directory
+    directory=$1
+    # Iterate over all directories in the directory and get the names of the directories
+    for d in $directory/*; do
+        # Check if the directory is a directory
+        if [ -d "$d" ]; then
+            # Get the name of the directory
+            directoryName=$(basename $d)
+            # get the last part after a "-." iterate until the getted part is not empty
+            while [[ $directoryName =~ [.-] ]]; do
+                directoryName=${directoryName##*[.-]}
+            done
+
+            # Lower case the directory name
+            directoryName=$(echo $directoryName | tr '[:upper:]' '[:lower:]')
+            if [ -z "$directoryName" ]; then
+                continue
+            fi
+
+            # Create aliases
+            alias "$directoryName"="cd \"$d\""
+            alias "c$directoryName"="code \"$d\""
+            alias "g$directoryName"="git -C \"$d\" status"
+        fi
+    done
+}

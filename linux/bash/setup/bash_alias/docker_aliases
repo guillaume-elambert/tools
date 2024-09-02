@@ -1,3 +1,4 @@
+#!/bin/bash
 ## DOCKER
 
 # GENERAL
@@ -38,7 +39,7 @@ alias dcp="docker container prune -f"
 alias dcin='docker exec -it'
 complete -F _complete_alias dcin
 
-# Networks 
+# Networks
 
 alias dn="docker network"
 complete -F _complete_alias dn
