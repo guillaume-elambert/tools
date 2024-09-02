@@ -1,0 +1,16 @@
+aliases:
+  p: pods
+  s: services
+  i: ingress
+  ir: ingressroute
+  r: replicasets
+  c: contexts
+  n: namespaces
+  dp: deployments
+  sec: v1/secrets
+  jo: jobs
+  cr: clusterroles
+  crb: clusterrolebindings
+  ro: roles
+  rb: rolebindings
+  np: networkpolicies
