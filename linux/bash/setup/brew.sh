@@ -99,7 +99,6 @@ declare -A NO_CONFIG_PACKAGES=(
     "jq"
     "yq"
     "go"
-    "kubectx"
     "kustomize"
     "helm"
     "minikube"
