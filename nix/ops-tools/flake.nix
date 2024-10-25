@@ -17,11 +17,11 @@
   }: let
     commit = self.shortRev or "dirty";
     date = self.lastModifiedDate or self.lastModified or "19700101";
-    version = "0.0.1+${builtins.substring 0 8 date}.${commit}";
+    version = "0.0.2+${builtins.substring 0 8 date}.${commit}";
 
     maintainers = import ../maintainers-list.nix;
 
-    supportedSystems = ["i686-linux" "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
+    supportedSystems = nixpkgs.lib.systems.flakeExposed;
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
     opsPackages = [
@@ -95,7 +95,6 @@
     packages = forAllSystems (
       system: let
         name = "ops-tools-${version}";
-        # Print all attributes of self
 
         # Create a symlink to install all the ops tools
         toolsSymlink = getSymlink {
@@ -108,7 +107,7 @@
             meta = {
               name = name;
               version = version;
-              maintainers = [maintainers.guillaume-elambert maintainers.abc];
+              maintainers = [maintainers.guillaume-elambert];
               platforms = supportedSystems;
             };
           };

@@ -21,9 +21,12 @@ This Nix profile installs some usefull tools for OPS:
 - `ansible`
 - `terraform`
 
-To install those tools, run the command:
+To install these tools, run one of the following commands:
 ```sh
-~ nix profile install ./ops-tools#ops-tools
+# Install from this repository
+~ nix profile install github:guillaume-elambert/tools?dir=nix/ops-tools#ops-tools
+# Install from local sources
+~ nix profile install ./nix/ops-tools#ops-tools
 ```
 
 
