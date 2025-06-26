@@ -11,8 +11,9 @@
 // ==/UserScript==
 'use strict';
 
-const configItems = {
-    "case"       : "Fractal Design North Chalk White TG Clear Tint - Fenêtre en verre",
+
+const MEMORYPC_CONFIG = window.MEMORYPC_CONFIG || {
+    "case"       : "prout prout prout",
     "CPU"        : "AMD Ryzen 7 9700X, 8x 3.80GHz",
     "cooler"     : "Arctic Liquid Freezer III Pro 360 A-RGB - 360mm - blanc",
     "motherboard": "ASUS TUF Gaming B650-E WIFI",
@@ -98,14 +99,16 @@ function run_all() {
     expandAccordionItems();
 
     // Apply the configuration
-    const res = applyConfiguration(configItems, true);
+    const res = applyConfiguration(MEMORYPC_CONFIG, true);
+    // Store the result in a global variable
+    window.MEMORYPC_CONFIG_RESULT = res;
     
-    if (Object.keys(res).length === Object.keys(configItems).length) {
+    if (Object.keys(res).length === Object.keys(MEMORYPC_CONFIG).length) {
         console.log("Configuration applied successfully.");
         return;
     }
 
-    console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(configItems).filter(key => !res.hasOwnProperty(key)).join(', '));
+    console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(MEMORYPC_CONFIG).filter(key => !res.hasOwnProperty(key)).join(', '));
 }
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
