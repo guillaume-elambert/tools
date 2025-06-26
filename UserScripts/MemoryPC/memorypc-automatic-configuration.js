@@ -9,6 +9,7 @@
 // @icon         https://www.memorypc.fr/media/63/40/4a/1707991535/apple.png
 // @grant        none
 // ==/UserScript==
+'use strict';
 
 const configItems = {
     "case"       : "Fractal Design North Chalk White TG Clear Tint - Fenêtre en verre",
@@ -21,45 +22,95 @@ const configItems = {
     "PSU"        : "be quiet ! Pure Power 12 M - 850W entièrement modulable - 80 PLUS Gold"
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-    'use strict';
+function findItemByText(text, items) {
+    const textLower = text.trim().toLowerCase();
+    return items.find(item => {
+        const title = item.querySelector('.title');
+        return title && title.textContent.trim().toLowerCase().includes(textLower);
+    });
+}
 
-    // Function to find items
-    function findConfigItems(configItems) {
-        const foundItems = {};
-        const elements = Array.from(document.querySelectorAll('.bogx--flexbox.bogx--config.image-list'));
-        for (const [key, item] of Object.entries(configItems)) {
-            // Find the element that has a div with the class "title" with the text matching the item
-            const element = elements.find(el => {
-                const title = el.querySelector('.title');
-                return title && title.textContent.trim().includes(item);
-            });
+function getConfigurationOptions(includeDisabled = true) {
+    const selector = `.bogx--flexbox.bogx--config.image-list${includeDisabled ? '' : ':not(.is--disabled)'}`;
+    return Array.from(document.querySelectorAll(selector));
+}
+function applyConfiguration(configuration, retry = true) {
+    const foundItems = {};
 
-            if (element) {
-                foundItems[key] = element;
-            }
+    // Find items matching configuration
+    const items = getConfigurationOptions();
+    for (const [key, value] of Object.entries(configuration)) {
+        const item = findItemByText(value, items);
+        if (item) {
+            foundItems[key] = item;
         }
-        return foundItems;
     }
 
-    // pageshow event is used to ensure the script runs after the page is fully loaded
-    window.addEventListener('pageshow', function() {
-        const foundItems = findConfigItems(configItems);
-        if (Object.keys(foundItems).length === Object.keys(configItems).length) {
+    // Reorganize foundItems: case first, PSU second, GPU last, others in between
+    // Doing this to avoid compatibility issues with the GPU needing a bigger case or PSU
+    const orderedKeys = {
+        "case": foundItems.case ? foundItems.case : null,
+        "PSU": foundItems.PSU ? foundItems.PSU : null,
+        ...Object.fromEntries(Object.entries(foundItems).filter(([k]) => !["case", "PSU", "GPU"].includes(k))),
+        "GPU": foundItems.GPU ? foundItems.GPU : null
+    };
 
-            // Click on all .accordion-item elements
-            document.querySelectorAll('.accordion-item button').forEach(item => {
-                item.click();
-            });
-            
-            for (const [key, element] of Object.entries(foundItems)) {
-                element.style.border = '2px solid red'; // Highlight the element
-                element.click(); // Click the element
-                console.log(`Clicked on ${key}:`, element);
-            }
-            
-        } else {
-            console.log("Current found items:", foundItems);
+    // Filter key values having a not defined value and create orderedItems
+    const orderedItems = Object.fromEntries(Object.entries(orderedKeys).filter(([k, v]) => v));
+    const foundEnabledItems = {};
+    const retryItems = {};
+
+    const check_item = (key, item) => {
+        if ( !item ) return
+
+        if (!item.classList.contains('is--disabled')) {
+            item.click();
+            foundEnabledItems[key] = item;
+        } else if ( retry ) {
+            retryItems[key] = item;
         }
+    }
+
+    // Click on each item in the orderedItems
+    // This will ensure that the items are clicked in the correct order
+    for (const [key, item] of Object.entries(orderedItems)) {
+        check_item(key, item);
+    }
+
+    // If retry is true, check the items that were not found or were disabled
+    for (const [key, item] of Object.entries(retryItems)) {
+        check_item(key, item);
+    }
+
+    return foundEnabledItems;
+}
+
+function expandAccordionItems() {
+    // Click on all .accordion-item elements to expand them
+    document.querySelectorAll('.accordion-item.bogx--group-wrap').forEach(item => {
+        document.querySelectorAll('.accordion-button.collapsed').forEach(el => el.classList.remove('collapsed'));
+        document.querySelectorAll('.accordion-collapse').forEach(el => el.classList.add('show'));
     });
-});
+}
+
+function run_all() {
+    // Click on all .accordion-item elements
+    expandAccordionItems();
+
+    // Apply the configuration
+    const res = applyConfiguration(configItems, true);
+    
+    if (Object.keys(res).length === Object.keys(configItems).length) {
+        console.log("Configuration applied successfully.");
+        return;
+    }
+
+    console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(configItems).filter(key => !res.hasOwnProperty(key)).join(', '));
+}
+
+if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
+    // If the document is not ready, wait for the pageshow event
+    window.addEventListener('pageshow', run_all);
+} else {
+    run_all();
+}
