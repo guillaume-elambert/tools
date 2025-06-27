@@ -13,7 +13,7 @@
 
 
 const MEMORYPC_CONFIG = window.MEMORYPC_CONFIG || {
-    "case"       : "prout prout prout",
+    "case"       : "Fractal Design North Chalk White TG Clear Tint - Fenêtre en verre",
     "CPU"        : "AMD Ryzen 7 9700X, 8x 3.80GHz",
     "cooler"     : "Arctic Liquid Freezer III Pro 360 A-RGB - 360mm - blanc",
     "motherboard": "ASUS TUF Gaming B650-E WIFI",
@@ -23,18 +23,32 @@ const MEMORYPC_CONFIG = window.MEMORYPC_CONFIG || {
     "PSU"        : "be quiet ! Pure Power 12 M - 850W entièrement modulable - 80 PLUS Gold"
 };
 
-function findItemByText(text, items) {
-    const textLower = text.trim().toLowerCase();
-    return items.find(item => {
-        const title = item.querySelector('.title');
-        return title && title.textContent.trim().toLowerCase().includes(textLower);
-    });
+
+function checkItemMatch(item, text) {
+    const title = item.querySelector('.title');
+    return title && title.textContent.trim().toLowerCase().includes(text.trim().toLowerCase());
 }
 
-function getConfigurationOptions(includeDisabled = true) {
-    const selector = `.bogx--flexbox.bogx--config.image-list${includeDisabled ? '' : ':not(.is--disabled)'}`;
+function findItemByText(text, items) {
+    return items.find(item => checkItemMatch(item, text));
+}
+
+function getConfigurationOptions(includeDisabled = true, onlySelected = false) {
+    let additionnalSelector = '';
+
+    if (onlySelected) {
+        includeDisabled = false; // If onlySelected is true, we don't want to include disabled items
+        additionnalSelector += '.selected';
+    }
+
+    if (!includeDisabled) {
+        additionnalSelector += ':not(.is--disabled)';
+    }
+
+    const selector = `.bogx--flexbox.bogx--config.image-list${additionnalSelector}`;
     return Array.from(document.querySelectorAll(selector));
 }
+
 function applyConfiguration(configuration, retry = true) {
     const foundItems = {};
 
@@ -77,7 +91,7 @@ function applyConfiguration(configuration, retry = true) {
     for (const [key, item] of Object.entries(orderedItems)) {
         check_item(key, item);
     }
-
+    
     // If retry is true, check the items that were not found or were disabled
     for (const [key, item] of Object.entries(retryItems)) {
         check_item(key, item);
@@ -94,26 +108,86 @@ function expandAccordionItems() {
     });
 }
 
-function run_all() {
+function checkConfigurationApplied(configuration, results) {
+    // If config and results are not the same length, return false
+    if (Object.keys(configuration).length !== Object.keys(results).length)
+        return false;
+
+    const selectedItems = getConfigurationOptions(false, true);
+    const toReturn = {}
+    let match = true;
+
+    for (const [key, value] of Object.entries(configuration)) {
+        // If the key is not in results, return false
+        if (!results.hasOwnProperty(key)) {
+            console.warn(`Configuration item "${key}" not found in results.`);
+            return false;
+        }
+
+        // If the value of the key in results does not match the value in configuration, return false
+        const item = results[key];
+        if (!item || !checkItemMatch(item, value) || !selectedItems.includes(item)) {
+            console.warn(`Configuration item "${key}" does not match expected value "${value}".`);
+            match = false;
+            continue;
+        }
+
+        // If the item matches, add it to toReturn
+        toReturn[key] = item;
+    }
+
+    return {
+        'match': match,
+        'results': toReturn
+    };
+}
+
+function runAll() {
     // Click on all .accordion-item elements
     expandAccordionItems();
 
     // Apply the configuration
     const res = applyConfiguration(MEMORYPC_CONFIG, true);
+    const verified = checkConfigurationApplied(MEMORYPC_CONFIG, res);
+    const verifiedResults = verified.results || {};
     // Store the result in a global variable
-    window.MEMORYPC_CONFIG_RESULT = res;
-    
-    if (Object.keys(res).length === Object.keys(MEMORYPC_CONFIG).length) {
+    window.MEMORYPC_CONFIG_RESULT = verifiedResults;
+
+    // Scroll to the price container (#bogx_config_pricebox_wrap) so the bottom of the element is the bottom of the screen
+    const priceElement = document.querySelector('#bogx_config_pricebox_wrap');
+    // Make sure also it is visible, like if an element is above him (z-index or position absolute or something like that), that it gets visible
+    if (priceElement) {
+        let rect = priceElement.getBoundingClientRect();
+        let scrollY = window.scrollY || document.documentElement.scrollTop;
+        let scrollX = window.scrollX || document.documentElement.scrollLeft;
+        let bottomOfElement = rect.top + scrollY + rect.height;
+
+        // If the add to cart form is fixed, scroll down the height of the buyForm element so the price gets visible
+        const buyForm = document.querySelector('#productDetailPageBuyProductForm > div');
+        if (buyForm && getComputedStyle(buyForm).position === 'fixed') {
+            // Scroll down the height of the buyForm element
+            console.log(`Scrolling down by ${buyForm.offsetHeight}px`);
+            bottomOfElement += buyForm.offsetHeight;
+        }
+        // Scroll to the bottom of the element
+        window.scrollTo({
+            top: bottomOfElement - window.innerHeight + 20, // 20px padding
+            left: scrollX,
+            behavior: 'auto'
+        });
+    }
+
+    if (verified.match) {
         console.log("Configuration applied successfully.");
         return;
     }
 
-    console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(MEMORYPC_CONFIG).filter(key => !res.hasOwnProperty(key)).join(', '));
+    console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(MEMORYPC_CONFIG).filter(key => !verifiedResults.hasOwnProperty(key)).join(', '));
 }
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
     // If the document is not ready, wait for the pageshow event
-    window.addEventListener('pageshow', run_all);
+    window.addEventListener('pageshow', runAll);
 } else {
-    run_all();
+    runAll();
 }
