@@ -109,10 +109,6 @@ function expandAccordionItems() {
 }
 
 function checkConfigurationApplied(configuration, results) {
-    // If config and results are not the same length, return false
-    if (Object.keys(configuration).length !== Object.keys(results).length)
-        return false;
-
     const selectedItems = getConfigurationOptions(false, true);
     const toReturn = {}
     let match = true;
@@ -121,13 +117,13 @@ function checkConfigurationApplied(configuration, results) {
         // If the key is not in results, return false
         if (!results.hasOwnProperty(key)) {
             console.warn(`Configuration item "${key}" not found in results.`);
-            return false;
+            match = false;
+            continue;
         }
 
         // If the value of the key in results does not match the value in configuration, return false
         const item = results[key];
         if (!item || !checkItemMatch(item, value) || !selectedItems.includes(item)) {
-            console.warn(`Configuration item "${key}" does not match expected value "${value}".`);
             match = false;
             continue;
         }
@@ -150,6 +146,7 @@ function runAll() {
     const res = applyConfiguration(MEMORYPC_CONFIG, true);
     const verified = checkConfigurationApplied(MEMORYPC_CONFIG, res);
     const verifiedResults = verified.results || {};
+
     // Store the result in a global variable
     window.MEMORYPC_CONFIG_RESULT = verifiedResults;
 
@@ -166,7 +163,6 @@ function runAll() {
         const buyForm = document.querySelector('#productDetailPageBuyProductForm > div');
         if (buyForm && getComputedStyle(buyForm).position === 'fixed') {
             // Scroll down the height of the buyForm element
-            console.log(`Scrolling down by ${buyForm.offsetHeight}px`);
             bottomOfElement += buyForm.offsetHeight;
         }
         // Scroll to the bottom of the element
