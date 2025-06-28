@@ -49,7 +49,7 @@ function getConfigurationOptions(includeDisabled = true, onlySelected = false) {
     return Array.from(document.querySelectorAll(selector));
 }
 
-function applyConfiguration(configuration, retry = true) {
+function applyConfiguration(configuration) {
     const foundItems = {};
 
     // Find items matching configuration
@@ -72,29 +72,33 @@ function applyConfiguration(configuration, retry = true) {
 
     // Filter key values having a not defined value and create orderedItems
     const orderedItems = Object.fromEntries(Object.entries(orderedKeys).filter(([k, v]) => v));
+    const nbItems = Object.keys(orderedItems).length;
     const foundEnabledItems = {};
-    const retryItems = {};
 
-    const check_item = (key, item) => {
-        if ( !item ) return
+    const check_and_click_item = (item) => {
+        if ( !item ) return false;
 
         if (!item.classList.contains('is--disabled')) {
             item.click();
-            foundEnabledItems[key] = item;
-        } else if ( retry ) {
-            retryItems[key] = item;
+            return true;
         }
+
+        return false
     }
 
-    // Click on each item in the orderedItems
-    // This will ensure that the items are clicked in the correct order
-    for (const [key, item] of Object.entries(orderedItems)) {
-        check_item(key, item);
-    }
-    
-    // If retry is true, check the items that were not found or were disabled
-    for (const [key, item] of Object.entries(retryItems)) {
-        check_item(key, item);
+    // Clicking on configuration components
+    // Do it while soe elements are present but disabled
+    // This is to avoid incompatibility isses like cooler too big for the case or PSU not enough power for the GPU
+    for(let i= 0; i < nbItems && nbItems > Object.keys(foundEnabledItems).length; i++) {
+        // Iterate over orderedItems not in the dictionary foundEnabledItems
+        for (const [key, item] of Object.entries({...orderedItems})) {
+            if(check_and_click_item(item)) {
+                // Remove the key value from orderedItems
+                delete orderedItems[key];
+                // Add the key value to foundEnabledItems
+                foundEnabledItems[key] = item;
+            };
+        }
     }
 
     return foundEnabledItems;
