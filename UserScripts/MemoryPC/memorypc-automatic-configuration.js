@@ -174,7 +174,7 @@ function applyConfiguration(configuration) {
             // Make it an array
             value = [value];
         }
-        
+
         for (const textToFind of value) {
             const item = findItemByText(textToFind, items);
             if (item) {
@@ -217,7 +217,7 @@ function applyConfiguration(configuration) {
     // Do it while some elements are present but disabled
     // This is to avoid incompatibility issues like cooler too big for the case or PSU not enough power for the GPU
     for(let i=0; i < nbItems /*&& nbItems > Object.keys(foundEnabledItems).length*/; i++) {
-        
+
         // Iterate over orderedItems not in the dictionary foundEnabledItems
         for (const [key, value] of Object.entries(orderedItems)) {
             for (const item of value) {
@@ -290,7 +290,7 @@ function checkConfigurationApplied(configurationResult) {
     };
 }
 
-function runAll() {
+function runAll(is_recursive_call=false) {
     // Click on all .accordion-item elements
     expandAccordionItems();
 
@@ -306,7 +306,7 @@ function runAll() {
 
     // Scroll to the price container (#bogx_config_pricebox_wrap) so the bottom of the element is the bottom of the screen
     const priceElementWrapper = document.querySelector('#bogx_config_pricebox_wrap');
-    
+
     // Make sure also it is visible, like if an element is above him (z-index or position absolute or something like that), that it gets visible
     if (priceElementWrapper) {
         let rect = priceElementWrapper.getBoundingClientRect();
@@ -339,15 +339,18 @@ function runAll() {
             console.log("Backup components applied:")
             console.log(nonZeroIndexes.map(([key, index]) => `${key}: ${index+1} choice used`).join('\n'));
         }
-        return;
+        return true;
     }
 
+    if(is_recursive_call) return false
+    if(runAll(true)) return true
     console.log("Some items were not found or could not be applied. Missing elements:", Object.keys(res.configuration).filter(key => !res.applied_configuration.hasOwnProperty(key)).join(', '));
+    return false
 }
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
     // If the document is not ready, wait for the pageshow event
-    window.addEventListener('pageshow', runAll);
+    window.addEventListener('pageshow', () => runAll());
 } else {
     runAll();
 }
