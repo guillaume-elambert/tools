@@ -14,14 +14,14 @@
 
 const CSL_COMPUTER_CONFIG = window.CSL_COMPUTER_CONFIG || {
     "case": [
+        "BoostBoxx Vitrum Advanced, blanc, éclairage aRGB avec commande, partie latérale en verre et façade en verre",
         "Fractal Design North, Chalk White, mesh partie latérale",
-        "APNX V1 White/Wood - Fenêtre en verre y compris 4x ventilateurs RGB"
     ],
     "cooler": "MSI MAG CoreLiquid A13 240 White refroidissement à eau",
     "RAM": "32 Go DDR5-RAM, Dual Channel (2x 16 Go), 6000 MHz*, Kingston Fury Beast",
     "PSU": "1000 Watt be quiet ! Pure Power 13 M, ATX3.1, 94% d'efficacité, certifié 80 Plus Gold",
     "SSD": "1000 Go M.2 PCIe 4.0 SSD Western Digital Black SN850X, lecture/écriture: max. 7300 Mo/s | 6300 Mo/s",
-    "GPU": "Zotac GeForce RTX 5070 Ti, Zotac GamingGeForce RTX 5070 Ti SOLID CORE OC White Edition, 16 Go GDDR7, 1x HDMI, 3x DisplayPort, blanc",
+    "GPU": "Gigabyte GeForce RTX 5080, Gigabyte RTX 5080 AORUS Master ICE 16G, 16 Go GDDR7, 1x HDMI, 3x DisplayPort, blanc",
     "CPU": "AMD Ryzen 7 9800X3D, 8x 4700 MHz",
     "motherboard": "GIGABYTE X870 AORUS Elite WIFI7 ICE"
 }
@@ -194,7 +194,7 @@ function getConfigurationOptions(includeDisabled = true, onlySelected = false) {
     return Array.from(document.querySelectorAll(selector));
 }
 
-function applyConfiguration(configuration) {
+async function applyConfiguration(configuration) {
     const foundItems = {};
 
     const res = new ConfigurationResult(configuration);
@@ -234,16 +234,42 @@ function applyConfiguration(configuration) {
     const nbItems = Object.values(orderedItems).flat().length;
     const foundEnabledItems = {};
 
-    const check_and_click_item = (item) => {
-        if ( !item || item.classList.contains('incompatible')) return false;
-        
+    const waitForLoaderToDisappear = () => {
+        return new Promise((resolve) => {
+            // If no loader exists, resolve immediately
+            const loader = document.querySelector('.css_loader.validate');
+            if (!loader) {
+                return resolve();
+            }
+
+            // Observe DOM changes to detect when loader is removed
+            const observer = new MutationObserver(() => {
+                const loaderStillExists = document.querySelector('.css_loader.validate');
+                if (!loaderStillExists) {
+                    observer.disconnect();
+                    resolve();
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        });
+    };
+
+    const check_and_click_item = async (item) => {
+        if (!item || item.classList.contains('incompatible')) return false;
+
         const input = item.querySelector('input[type="radio"], input[type="checkbox"]');
         if (!input) return false;
-        item.click();
-        input.click()
-        return true;
-    }
 
+        // Wait for loader to disappear before proceeding
+        await waitForLoaderToDisappear();
+
+        input.click();
+        return true;
+    };
     // Clicking on configuration components
     // Do it while some elements are present but disabled
     // This is to avoid incompatibility issues like cooler too big for the case or PSU not enough power for the GPU
@@ -257,7 +283,7 @@ function applyConfiguration(configuration) {
                     continue; // Skip this item if it is already in foundEnabledItems[key]
                 }
 
-                if(check_and_click_item(item)) {
+                if(await check_and_click_item(item)) {
                     // Add the key value to foundEnabledItems
                     foundEnabledItems[key] = item;
                     break
@@ -320,12 +346,12 @@ function checkConfigurationApplied(configurationResult) {
     };
 }
 
-function runAll(is_recursive_call=false) {
+async function runAll(is_recursive_call=false) {
     // Click on all .accordion-item elements
     expandAccordionItems();
 
     // Apply the configuration
-    const res = applyConfiguration(CSL_COMPUTER_CONFIG, true);
+    const res = await applyConfiguration(CSL_COMPUTER_CONFIG, true);
     const verified = checkConfigurationApplied(res);
     const verifiedResults = verified.applied_components || {};
 
@@ -374,7 +400,7 @@ function runAll(is_recursive_call=false) {
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
     // If the document is not ready, wait for the pageshow event
-    window.addEventListener('pageshow', () => runAll());
+    window.addEventListener('pageshow', async () => await runAll());
 } else {
-    runAll();
+    await runAll();
 }
