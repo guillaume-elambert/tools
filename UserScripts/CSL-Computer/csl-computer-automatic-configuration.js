@@ -258,17 +258,42 @@ async function applyConfiguration(configuration) {
         });
     };
 
+    // Returns true if a dialog was closed
+    const closeDialog = () => {
+        // body > div.page > div > main > div.product-view.uproduct > div.product-card.detail > div.configurator > dialog:nth-child(4)
+        const dialogs = document.querySelectorAll(".product-view .configurator > dialog");
+        for (const dialog of dialogs) {
+            const okBtn = dialog.querySelector('.toolbar > form > button[type="button"]');
+            if (okBtn) {
+                okBtn.click();
+                continue;
+            }
+            const closeBtn = dialog.querySelector(".title > i");
+            if (closeBtn) {
+                closeBtn.click();
+                continue;
+            }
+            // Else remove the dialog from the DOM
+            dialog.remove();
+        }
+
+        return dialogs.length > 0;
+    } 
+
     const check_and_click_item = async (item) => {
         if (!item || item.classList.contains('incompatible')) return false;
 
         const input = item.querySelector('input[type="radio"], input[type="checkbox"]');
         if (!input) return false;
 
+
+        input.click();
+
         // Wait for loader to disappear before proceeding
         await waitForLoaderToDisappear();
 
-        input.click();
-        return true;
+        // Returns false if a dialog was closed
+        return !closeDialog();
     };
     // Clicking on configuration components
     // Do it while some elements are present but disabled
@@ -386,8 +411,13 @@ async function runAll(is_recursive_call=false) {
         });
 
         if (nonZeroIndexes.length > 0) {
-            console.log("Backup components applied:")
-            console.log(nonZeroIndexes.map(([key, index]) => `${key}: ${index+1} choice used`).join('\n'));
+            if(is_recursive_call){
+                console.log("Backup components applied:")
+                console.log(nonZeroIndexes.map(([key, index]) => `${key}: ${index+1} choice used`).join('\n'));
+            } else {
+                // Retry to apply configuration, in case backup components were wrongly used
+                runAll(true);
+            }
         }
         return true;
     }
