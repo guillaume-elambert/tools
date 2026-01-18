@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CSL Computer - Automatic Configuration
-// @version      2026-01-16
+// @version      2026-01-18
 // @description  Script to automatically select a predefined configuration on CSL-Computer.com
 // @author       Guillaume ELAMBERT
 // @match        https://www.csl-computer.com/*
@@ -429,8 +429,13 @@ async function runAll(is_recursive_call=false) {
 }
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
-    // If the document is not ready, wait for the pageshow event
-    window.addEventListener('pageshow', async () => await runAll());
-} else {
-    await runAll();
+    // Wait for pageshow event
+    await new Promise((resolve) => {
+        window.addEventListener('pageshow', () => {
+            console.log("Page is loaded - pageshow event");
+            return resolve()
+        });
+    })
 }
+
+await runAll();

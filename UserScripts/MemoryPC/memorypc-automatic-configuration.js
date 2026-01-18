@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MemoryPC - Automatic Configuration
-// @version      2024-07-18
+// @version      2026-01-18
 // @description  Script to automatically select a predefined configuration on MemoryPC.fr
 // @author       Guillaume ELAMBERT
 // @match        https://www.memorypc.fr/*
@@ -349,8 +349,13 @@ function runAll(is_recursive_call=false) {
 }
 
 if( document.readyState !== 'ready' && document.readyState !== 'complete' ) {
-    // If the document is not ready, wait for the pageshow event
-    window.addEventListener('pageshow', () => runAll());
-} else {
-    runAll();
+    // Wait for pageshow event
+    await new Promise((resolve) => {
+        window.addEventListener('pageshow', () => {
+            console.log("Page is loaded - pageshow event");
+            return resolve()
+        });
+    })
 }
+
+await runAll();
