@@ -112,6 +112,24 @@ class MemoryPCHandler extends ConfigurationHandler {
     }
 }
 
+// Handle cookie banner before executing configuration
+DOMUtils.waitForElementThenExecute(
+    '#usercentrics-root',
+    (banner) => {
+        const shadowRoot = banner.shadowRoot;
+        if (!shadowRoot) return false;
+        const denyButton = shadowRoot.querySelector("button[data-testid='uc-deny-all-button']");
+        if (!denyButton) return false;
+        console.log('[MemoryPC] Clicking deny-all button on cookie banner');
+        denyButton.click();
+        return true;
+
+    },
+    40,    // MaxRetries
+    500,   // Retry interval
+    20000  // Timeout
+);
+
 // Execute when ready
 (async () => {
     const handler = new MemoryPCHandler(MEMORYPC_CONFIG);

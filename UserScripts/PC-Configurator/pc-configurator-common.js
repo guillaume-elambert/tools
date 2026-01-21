@@ -456,13 +456,145 @@ class ConfigurationHandler {
     }
 }
 
+/**
+ * Utility class for common DOM operations
+ */
+class DOMUtils {
+    /**
+     * Wait for element to appear in DOM
+     * @param {string} selector - CSS selector
+     * @param {number} timeout - Timeout in ms (default: 5000)
+     * @returns {Object} Object with promise, stop() method, and cleanup
+     */
+    static waitForElement(selector, timeout = 5000) {
+        let observer = null;
+        let timeoutId = null;
+
+        const promise = new Promise((resolve, reject) => {
+            // Check if element already exists
+            const existing = document.querySelector(selector);
+            if (existing) {
+                return resolve(existing);
+            }
+
+            observer = new MutationObserver(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    cleanup();
+                    resolve(element);
+                }
+            });
+
+            observer.observe(document.documentElement, {
+                childList: true,
+                subtree: true,
+            });
+
+            timeoutId = setTimeout(() => {
+                cleanup();
+                reject(new Error(`Element "${selector}" not found within ${timeout}ms`));
+            }, timeout);
+        });
+
+        const cleanup = () => {
+            if (observer) {
+                observer.disconnect();
+                observer = null;
+            }
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+        };
+
+        return {
+            promise,
+            stop: cleanup
+        };
+    }
+
+    /**
+     * Wait for element and execute handler when found
+     * @param {string} selector - CSS selector
+     * @param {Function} handler - Handler function to execute on element, should return boolean (true if handled successfully)
+     * @param {number} maxRetries - Maximum number of retries (default: 1)
+     * @param {number} retryInterval - Interval in ms between retries (default: 1000)
+     * @param {number} timeout - Timeout in ms per waitForElement call (default: 5000)
+     * @returns {Object} Object with promise and stop() method
+     */
+    static waitForElementThenExecute(selector, handler, maxRetries = 1, retryInterval = 1000, timeout = 5000) {
+        let attempt = 0;
+        let lastError = null;
+        const waiters = [];
+        let stopped = false;
+
+        const runAttempt = async () => {
+            if (stopped) throw new Error('Stopped');
+
+            const waiter = this.waitForElement(selector, timeout);
+            waiters.push(waiter);
+
+            let handled = false;
+            let error = null;
+
+            try {
+                const element = await waiter.promise;
+                handled = await handler(element);
+                if (handled) {
+                    return { selector, success: true, element };
+                }
+            } catch (e) {
+                error = e;
+                lastError = e;
+            }
+
+            if (attempt < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, retryInterval));
+                attempt++;
+                return runAttempt();
+            }
+
+            return { selector, success: false, error: error || lastError };
+        };
+
+        return {
+            promise: runAttempt(),
+            stop: () => {
+                stopped = true;
+                waiters.forEach(w => w.stop());
+            }
+        };
+    }
+
+    /**
+     * Wait for multiple elements and execute handlers when found
+     * @param {Array<{selector: string, handler: Function, maxRetries?: number, retryInterval?: number, timeout?: number}>} elementsHandlers - Element config with selector, handler and optional retry options
+     * @returns {Object} Object with results promise and stop() method
+     */
+    static waitForElementsThenExecute(elementsHandlers) {
+        const waiters = [];
+
+        const results = elementsHandlers.map(({ selector, handler, maxRetries = 1, retryInterval = 1000, timeout = 5000 }) => {
+            const waiter = this.waitForElementThenExecute(selector, handler, maxRetries, retryInterval, timeout);
+            waiters.push(waiter);
+            return waiter.promise;
+        });
+
+        return {
+            results: Promise.all(results),
+            stop: () => waiters.forEach(w => w.stop())
+        };
+    }
+}
+
 // Export to global scope for userscript usage
 if (typeof window !== 'undefined') {
     window.ConfigurationResult = ConfigurationResult;
     window.ConfigurationHandler = ConfigurationHandler;
+    window.DOMUtils = DOMUtils;
 }
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ConfigurationResult, ConfigurationHandler };
+    module.exports = { ConfigurationResult, ConfigurationHandler, DOMUtils };
 }

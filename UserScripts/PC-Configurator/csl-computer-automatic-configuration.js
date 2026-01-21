@@ -179,6 +179,21 @@ class CSLComputerHandler extends ConfigurationHandler {
     }
 }
 
+// Handle cookie banner before executing configuration
+DOMUtils.waitForElementThenExecute(
+    '#cmpbox',
+    (banner) => {
+        const denyButton = banner.querySelector('#cmpwelcomebtnno .cmpboxbtn');
+        if (!denyButton) return false;
+        console.log('[CSL] Clicking deny button on cookie banner');
+        denyButton.click();
+        return true;
+    },
+    40,    // MaxRetries
+    500,   // Retry interval
+    20000  // Timeout
+);
+
 // Execute when ready
 (async () => {
     const handler = new CSLComputerHandler(CSL_COMPUTER_CONFIG);
