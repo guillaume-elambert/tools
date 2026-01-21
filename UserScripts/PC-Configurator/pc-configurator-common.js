@@ -138,7 +138,7 @@ class ConfigurationHandler {
         if (this.constructor === ConfigurationHandler) {
             throw new Error("ConfigurationHandler is an abstract class and cannot be instantiated directly");
         }
-        
+
         this.configuration = configuration;
         this.globalVarName = globalVarName;
         this.result = null;
@@ -271,7 +271,7 @@ class ConfigurationHandler {
         ResultClass.extractItemTitle = this.extractItemTitle.bind(this);
 
         const items = this.getConfigurationOptions();
-        
+
         // Find all matching items
         for (let [key, value] of Object.entries(res.configuration)) {
             if (typeof value === 'string') {
@@ -344,12 +344,12 @@ class ConfigurationHandler {
             for (const textToFind of value) {
                 if (item && this.checkItemMatch(item, textToFind) && selectedItems.includes(item)) {
                     componentFound = true;
+                    toReturn[key] = item;
                     break;
                 }
             }
-            
+
             match = match && componentFound;
-            toReturn[key] = item;
         }
 
         return {
@@ -363,7 +363,7 @@ class ConfigurationHandler {
      */
     async scrollToPrice() {
         const priceElementWrapper = this.getPriceWrapper();
-        
+
         if (priceElementWrapper) {
             const rect = priceElementWrapper.getBoundingClientRect();
             const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -404,10 +404,21 @@ class ConfigurationHandler {
         this.expandAccordionItems();
 
         const res = await this.applyConfiguration();
-        const verified = this.checkConfigurationApplied(res);
-        const verifiedResults = verified.applied_components || {};
+        let verified, verifiedResults
 
-        res.applied_configuration = verifiedResults;
+        const checkConfiguration = () => {
+            verified = this.checkConfigurationApplied(res);
+            verifiedResults = verified.applied_components || {};
+
+            res.applied_configuration = verifiedResults;
+        }
+        checkConfiguration()
+
+        const reRunAll = async () => {
+            const res = await this.runAll(true);
+            checkConfiguration();
+            return res;
+        }
 
         // Store result globally
         window[this.globalVarName] = JSON.parse(JSON.stringify(res));
@@ -417,7 +428,7 @@ class ConfigurationHandler {
 
         if (verified.match) {
             console.log("Configuration applied successfully.");
-            
+
             const nonZeroIndexes = Object.entries(res.applied_indexes).filter(([key, index]) => index !== 0);
 
             if (nonZeroIndexes.length > 0) {
@@ -425,16 +436,16 @@ class ConfigurationHandler {
                     console.log("Backup components applied:");
                     console.log(nonZeroIndexes.map(([key, index]) => `${key}: ${index + 1} choice used`).join('\n'));
                 } else {
-                    return await this.runAll(true);
+                    return await reRunAll();
                 }
             }
             return true;
         }
 
         if (isRecursiveCall) return false;
-        if (await this.runAll(true)) return true;
-        
-        console.log("Some items were not found or could not be applied. Missing elements:", 
+        if (await reRunAll(true)) return true;
+
+        console.log("Some items were not found or could not be applied. Missing elements:",
             Object.keys(res.configuration).filter(key => !res.applied_configuration.hasOwnProperty(key)).join(', '));
         return false;
     }
