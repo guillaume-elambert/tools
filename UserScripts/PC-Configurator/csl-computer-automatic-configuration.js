@@ -12,6 +12,7 @@
 // ==/UserScript==
 'use strict';
 
+const ALLOW_OPTIONAL_COMPONENTS = true
 const CSL_COMPUTER_CONFIG = window.CSL_COMPUTER_CONFIG || {
     "case": [
         "BoostBoxx Vitrum Advanced, blanc, éclairage aRGB avec commande, partie latérale en verre et façade en verre",
@@ -69,9 +70,15 @@ class CSLComputerHandler extends ConfigurationHandler {
             return false;
         }
 
-        const input = item.querySelector('input[type="radio"], input[type="checkbox"]');
+        const input = item.querySelector(':scope > :is(input[type="radio"], input[type="checkbox"]).component');
+        const quantity = item.querySelector(':scope > .quantity input')
         if (!input) {
             return false;
+        }
+
+        // Allow or block optional (non required) components
+        if(!ALLOW_OPTIONAL_COMPONENTS && quantity){
+            return false
         }
 
         input.click();
