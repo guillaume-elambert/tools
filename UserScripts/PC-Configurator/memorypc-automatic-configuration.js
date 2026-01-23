@@ -131,7 +131,7 @@ DOMUtils.waitForElementThenExecute(
 );
 
 // Execute when ready
-(async () => {
+await (async () => {
     const handler = new MemoryPCHandler(MEMORYPC_CONFIG);
     await handler.execute();
 })();

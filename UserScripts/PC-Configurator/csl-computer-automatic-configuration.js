@@ -202,7 +202,7 @@ DOMUtils.waitForElementThenExecute(
 );
 
 // Execute when ready
-(async () => {
+await (async () => {
     const handler = new CSLComputerHandler(CSL_COMPUTER_CONFIG);
     await handler.execute();
 })();
