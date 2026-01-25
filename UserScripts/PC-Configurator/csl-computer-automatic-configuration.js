@@ -12,7 +12,7 @@
 // ==/UserScript==
 'use strict';
 
-const ALLOW_OPTIONAL_COMPONENTS = true
+const ALLOW_OPTIONAL_COMPONENTS = typeof window.ALLOW_OPTIONAL_COMPONENTS !== 'undefined' ? window.ALLOW_OPTIONAL_COMPONENTS : true;
 const CSL_COMPUTER_CONFIG = window.CSL_COMPUTER_CONFIG || {
     "case": [
         "BoostBoxx Vitrum Advanced, blanc, éclairage aRGB avec commande, partie latérale en verre et façade en verre",
